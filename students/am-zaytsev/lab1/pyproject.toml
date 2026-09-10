@@ -1,0 +1,27 @@
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13"]
+build-backend = "uv_build"
+
+[project]
+name = "lin_clf"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "matplotlib>=3.10.9",
+    "numpy>=2.2.6",
+    "scikit-learn>=1.7.2",
+    "seaborn>=0.13.2",
+]
+
+[project.scripts]
+train = "lin_clf.model.train:main"
+
+[tool.uv.build-backend]
+module-root = "source"
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+]

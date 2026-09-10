@@ -1,0 +1,4 @@
+./data/*
+tmp.ipynb
+__pycache__/
+.venv/
