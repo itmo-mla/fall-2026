@@ -33,20 +33,13 @@ class LinearClassifier:
         feat_data = self._add_ones(feat_data)
         return (feat_data.dot(self.w) > 0) * 2 - 1
 
-    def _diff(self, feat_data, target_data, tao):
-        # MAE
-        feat_data = self._add_ones(feat_data)
-        return -1 / feat_data.shape[0] * feat_data.T.dot(target_data) + tao * self.w
 
     def diff(self, feat_data, target_data, tao):
         feat_data = self._add_ones(feat_data)
-        return (
-            -1
-            / feat_data.shape[0]
-            * (
-                2
-                * (1 - target_data.T.dot(feat_data).dot(self.w))
-                * feat_data.T.dot(target_data)
-            )
-            + tao * self.w
-        )
+        n = feat_data.shape[0]
+
+        pred = feat_data.dot(self.w)              # X @ A
+        residual = 1 - target_data * pred         # 1 - Y ⊙ (X @ A)
+
+        grad = -2 / n * feat_data.T.dot(target_data * residual) + tao * self.w
+        return grad
