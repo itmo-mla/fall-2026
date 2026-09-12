@@ -44,6 +44,7 @@ class MetricTracker:
             ax.plot(gx, gy, label=name)
         ax.set_xlabel("epoch")
         ax.set_ylabel(plot_name)
+        ax.grid(True)
         ax.legend()
         fig.tight_layout()
         return fig
