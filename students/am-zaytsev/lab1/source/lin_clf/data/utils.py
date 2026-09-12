@@ -64,8 +64,8 @@ def preprocess(df_x, df_y):
     return X_train.to_numpy(), X_test.to_numpy(), y_train.to_numpy(), y_test.to_numpy()
 
 
-def fetch_batch(x, y, batch_size):
-    batch_idx = np.random.choice(x.shape[0], batch_size, x.shape[0] <= batch_size)
+def fetch_batch(x, y, batch_size, prob=None):
+    batch_idx = np.random.choice(x.shape[0], batch_size, x.shape[0] <= batch_size, p=prob)
     return x[batch_idx], y[batch_idx]
 
 
