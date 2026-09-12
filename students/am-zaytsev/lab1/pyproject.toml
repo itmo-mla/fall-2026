@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-train = "lin_clf.model.train:main"
+train = "lin_clf.train:main"
 
 [tool.uv.build-backend]
 module-root = "source"
