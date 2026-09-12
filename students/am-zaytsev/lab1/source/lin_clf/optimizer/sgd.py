@@ -6,10 +6,9 @@ class SGD(Optimizer):
     mom_v = None
 
     def __init__(
-        self, model: Model, tao: float, momentum_k: float, h: float | None = None
+        self, model: Model, momentum_k: float, h: float | None = None
     ):
         super().__init__(model)
-        self.tao = tao
         self.momentum_k = momentum_k
         self.h = h
 
@@ -17,7 +16,7 @@ class SGD(Optimizer):
         return (dL.T @ c1 + dL.T @ c2 @ self.model.w) / (dL.T @ c2 @ dL)
 
     def step(self, mini_batch_x, mini_batch_y):
-        dL, c1, c2 = self.model.diff(mini_batch_x, mini_batch_y, self.tao)
+        dL, c1, c2 = self.model.diff(mini_batch_x, mini_batch_y)
 
         if self.mom_v is None:
             mom_v = dL

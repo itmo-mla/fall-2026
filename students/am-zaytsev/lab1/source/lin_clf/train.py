@@ -11,8 +11,10 @@ def train(h=0.001, tao=0.01, momentum_k=1, batch_size=2**6):
 
     X_train, X_test, y_train, y_test = preprocess(df_x, df_y)
 
-    lin_model = LinearClassifier(X_train, y_train)
-    optimizer = SGD(lin_model, tao, momentum_k, h)
+    n, m = X_train.shape
+    lin_model = LinearClassifier(tao)
+    lin_model.init_weights(n, m)
+    optimizer = SGD(lin_model, momentum_k, h)
 
     loss_list = list()
     metric_train_list = list()
@@ -27,7 +29,7 @@ def train(h=0.001, tao=0.01, momentum_k=1, batch_size=2**6):
 
         optimizer.step(mini_batch_x, mini_batch_y)
 
-        loss = float(lin_model.loss(X_train, y_train))
+        loss = float(lin_model.loss(mini_batch_x, mini_batch_y))
         metric_train = float((lin_model.predict(X_train) == y_train).mean())
         metric_test = float((lin_model.predict(X_test) == y_test).mean())
         loss_list.append(loss)
