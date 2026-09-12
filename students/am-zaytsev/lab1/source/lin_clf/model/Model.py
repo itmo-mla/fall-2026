@@ -12,5 +12,5 @@ class Model:
     def predict(self, feat_data):
         raise NotImplementedError()
 
-    def diff(self, feat_data, target_data, tao):
+    def diff(self, feat_data, target_data):
         raise NotImplementedError()
