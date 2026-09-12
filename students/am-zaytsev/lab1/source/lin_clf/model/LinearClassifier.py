@@ -47,9 +47,8 @@ class LinearClassifier:
         if feat_data.shape[1] != self.w.shape[0]:
             feat_data = self._add_ones(feat_data)
         n = feat_data.shape[0]
-        
-        m = feat_data.dot(self.w) * target_data
-        s = - target_data * (1 - m)
-        sum_v = (s.T @ feat_data).T
+        c1 = -2 / n * feat_data.T.dot(target_data)
+        c2 = 2 / n * feat_data.T.dot(target_data**2 * feat_data) + tao * np.eye(self.w.shape[0])
 
-        return 1 / n * sum_v + tao * self.w
+        dL = c1 + c2.dot(self.w)
+        return dL, c1, c2
