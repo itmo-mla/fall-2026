@@ -44,12 +44,12 @@ class LinearClassifier:
         return grad
 
     def diff(self, feat_data, target_data, tao):
-        feat_data = self._add_ones(feat_data)
+        if feat_data.shape[1] != self.w.shape[0]:
+            feat_data = self._add_ones(feat_data)
         n = feat_data.shape[0]
-        sum_v = 0
-        for i in range(n):
-            x_i = feat_data[i][np.newaxis, :] # row
-            y_i = target_data[i]
-            sum_v += 2 * (1 - x_i.dot(self.w) * y_i) * (- y_i * x_i.T)
+        
+        m = feat_data.dot(self.w) * target_data
+        s = - target_data * (1 - m)
+        sum_v = (s.T @ feat_data).T
 
         return 1 / n * sum_v + tao * self.w
