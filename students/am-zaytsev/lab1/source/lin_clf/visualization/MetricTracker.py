@@ -1,5 +1,7 @@
+import os
+
+import matplotlib.pyplot as plt
 import numpy as np
-from plotly import express as px
 
 
 class MetricTracker:
@@ -28,14 +30,44 @@ class MetricTracker:
         c = [row[2] for row in selected]
         return x, y, c
 
-    def draw(self, plot_name, max_points=None, renderer="browser"):
+    def _figure(self, plot_name, max_points):
         if plot_name not in self.metrics:
             raise KeyError(f"Unknown plot '{plot_name}'")
         x, y, c = self._series(plot_name, max_points)
-        fig = px.line(x=x, y=y, color=c, labels={"x": "epoch", "y": plot_name})
-        fig.show(renderer=renderer)
+        groups = dict()
+        for xi, yi, ci in zip(x, y, c):
+            groups.setdefault(ci, ([], []))
+            groups[ci][0].append(xi)
+            groups[ci][1].append(yi)
+        fig, ax = plt.subplots()
+        for name, (gx, gy) in groups.items():
+            ax.plot(gx, gy, label=name)
+        ax.set_xlabel("epoch")
+        ax.set_ylabel(plot_name)
+        ax.legend()
+        fig.tight_layout()
         return fig
 
-    def draw_all(self, max_points=None, renderer="browser"):
+    def draw(self, plot_name, max_points=None):
+        fig = self._figure(plot_name, max_points)
+        plt.show()
+        return fig
+
+    def draw_all(self, max_points=None):
         for plot_name in self.metrics:
-            self.draw(plot_name, max_points, renderer)
+            self.draw(plot_name, max_points)
+
+    def save(self, plot_name, path, max_points=None, dpi=150):
+        fig = self._figure(plot_name, max_points)
+        fig.savefig(path, dpi=dpi)
+        plt.close(fig)
+        return path
+
+    def save_all(self, directory, max_points=None, format="png", dpi=150):
+        os.makedirs(directory, exist_ok=True)
+        paths = list()
+        for plot_name in self.metrics:
+            path = os.path.join(directory, f"{plot_name}.{format}")
+            self.save(plot_name, path, max_points, dpi)
+            paths.append(path)
+        return paths
