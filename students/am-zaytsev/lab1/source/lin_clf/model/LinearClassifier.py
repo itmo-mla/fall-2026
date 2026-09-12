@@ -4,17 +4,12 @@ from .Model import Model
 
 
 class LinearClassifier(Model):
-    def __init__(self, tao=0.01):      
+    def __init__(self, tao=0.01):
         self.tao = tao
 
     def _add_ones(self, x):
         ones = np.ones(x.shape[0])[:, np.newaxis]
         return np.concat([x, ones], 1)
-
-    def init_weights(self, n, m):
-        self.w = np.random.uniform(-1 / (2 * n), 1 / (2 * n), m + 1)[
-            :, np.newaxis
-        ]
 
     def predict_margin(self, feat_data, target_data, need_pad=False):
         if need_pad:
@@ -31,7 +26,6 @@ class LinearClassifier(Model):
     def predict(self, feat_data):
         feat_data = self._add_ones(feat_data)
         return (feat_data.dot(self.w) > 0) * 2 - 1
-
 
     def diff(self, feat_data, target_data):
         if feat_data.shape[1] != self.w.shape[0]:

@@ -1,9 +1,7 @@
 class Model:
     def __init__(self):
+        self.w = NotImplemented
         pass
-
-    def init_weights(self):
-        raise NotImplementedError()
 
     def predict_margin(self, feat_data, target_data, need_pad=False):
         raise NotImplementedError()
