@@ -21,6 +21,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 from task03_quality import (load_and_prepare, add_bias, correlation_init,
                              quadratic_loss, init_Q, update_Q)
 from task02_gradient import gradient
+from task01_margin import plot_margin_distribution
 
 
 class LinearClassifierMomentum:
@@ -110,3 +111,9 @@ if __name__ == "__main__":
           "(recall=0 на отказах) - квадратичная потеря без взвешивания классов "
           "при дисбалансе 96.6%/3.4% сходится именно так. Это будет частично "
           "исправлено в задаче 7 (предъявление по модулю отступа).")
+
+    # Отступ ПОСЛЕ обучения (на train) - для сравнения с "до обучения" из task01
+    # (random.png / correlation.png): доля M<0 должна заметно снизиться.
+    plot_margin_distribution(clf.w, Xb_train, y_train,
+                              "Задача 4: отступы объектов после обучения (SGD с инерцией)",
+                              "task04_pretrained.png")
