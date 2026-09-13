@@ -9,8 +9,8 @@ def _digit2str(d, str_len):
 
 class MetricCounter:
     def __init__(self, y_pred: np.array, y_true: np.array):
-        self.y_pred = y_pred
-        self.y_true = y_true
+        self.y_pred = y_pred.flatten()
+        self.y_true = y_true.flatten()
 
         self.metric_dict = {
             "acc": self.acc,
@@ -76,7 +76,7 @@ t  {_digit2str(tn, n)}  {_digit2str(tp, n)}
 
     def print_all(self):
         print(f"""=== Model Evaluation ===
-Accuracy: {round(self.acc(), 2)}\n""")
+Accuracy: {round(self.acc(), 4)}\n""")
         self._print_cnf_mtx()
 
         metric_list = [["1"], ["-1"]]
