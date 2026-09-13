@@ -27,8 +27,16 @@
 
 Реализация: `predict_margin` — `source/lin_clf/model/LinearClassifier.py:14`.
 
+**Random init**
+
 ![Random init margin](images/random.png)
+
+**Correlation init**
+
 ![Correlation init margin](images/correlation.png)
+
+**Pretrained**
+
 ![Pretrained margin](images/pretrained.png)
 
 *Отступы: случайная инициализация, инициализация через корреляцию, обученная модель.*
@@ -41,9 +49,12 @@ $$Q(w) = \frac{1}{n}\sum_{i=1}^{n}\bigl(1 - M_i\bigr)^2 + \frac{\lambda}{2}\lVer
 
 Градиент:
 
-$$\nabla Q(w) = -\frac{2}{n}X^{T}y + \Bigl(\frac{2}{n}X^{T}\operatorname{diag}(y^2)X + \lambda I\Bigr)w = c_1 + c_2 w$$
+$$\nabla Q(w) =  \left[ 
+    \underbrace{-\frac{2}{n} X^T \cdot Y}_{c_1} + \left( \underbrace{\frac{2}{n} X^T \cdot (Y^{2} \odot X) + \lambda I }_{c_2}\right) \cdot w \right]_{(m, 1)} = c_1 + c_2 w$$
 
-Реализация: `diff` — `source/lin_clf/model/LinearClassifier.py:30`. Возвращает `dL`, `c1` (линейная часть), `c2` (квадратичная часть).
+Вывод формулы в `students/am-zaytsev/lab1/source/lin_clf/model/README.md`
+
+Реализация: `diff` — `source/lin_clf/model/LinearClassifier.py:30`. Возвращает `dL`, `c1`, `c2`.
 
 ## 4. Рекуррентная оценка функционала качества
 
@@ -71,6 +82,8 @@ $$v_t = (1-k)\,v_{t-1} + k\,\nabla Q(w_t), \qquad w_{t+1} = w_t - h\,v_t$$
 Оптимальный шаг по направлению градиента:
 
 $$h^{*} = \frac{\nabla Q^{T} c_1 + \nabla Q^{T} c_2 w}{\nabla Q^{T} c_2 \nabla Q}$$
+
+Вывод формулы в `students/am-zaytsev/lab1/source/lin_clf/model/README.md`
 
 Реализация: `count_h_star` — `source/lin_clf/optimizer/sgd.py:13`; включается при `h=None`. Для `speed_sgd` задано `momentum_k = 1.0`, `h = None` (`source/lin_clf/experiments/suite.py:54`).
 
