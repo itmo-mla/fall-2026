@@ -11,6 +11,8 @@ from lin_clf.model.WeightInit import init_random
 
 @dataclass
 class MultistartResult:
+    """Aggregated results of several training runs with random initialization."""
+
     accuracies: list
     mean: float
     std: float

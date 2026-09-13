@@ -12,6 +12,8 @@ from lin_clf.visualization import MetricTracker
 
 @dataclass
 class TrainResult:
+    """Outcome of a training run: metrics, test accuracy, epochs and model."""
+
     tracker: MetricTracker
     test_accuracy: float
     epochs_run: int

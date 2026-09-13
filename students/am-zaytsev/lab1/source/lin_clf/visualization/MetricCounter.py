@@ -8,6 +8,11 @@ def _digit2str(d, str_len):
 
 
 class MetricCounter:
+    """Computes and prints classification quality metrics from predictions.
+
+    Reports accuracy, recall, precision, f1-score and the confusion matrix.
+    """
+
     def __init__(self, y_pred: np.array, y_true: np.array):
         self.y_pred = y_pred.flatten()
         self.y_true = y_true.flatten()

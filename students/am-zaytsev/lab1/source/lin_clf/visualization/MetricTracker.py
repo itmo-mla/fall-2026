@@ -5,6 +5,12 @@ import numpy as np
 
 
 class MetricTracker:
+    """Collects per-epoch metric values and draws or saves them as plots.
+
+    Metrics are grouped by plot name and metric name, and can be optionally
+    subsampled to ``max_points`` before plotting.
+    """
+
     def __init__(self):
         self.metrics = dict()
 

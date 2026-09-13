@@ -3,6 +3,8 @@ from dataclasses import dataclass
 
 @dataclass
 class TrainConfig:
+    """Configuration parameters for a single training run."""
+
     epochs: int = 10_000
     h: float | None = 0.001
     tao: float = 0.01

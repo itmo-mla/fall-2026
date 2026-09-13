@@ -3,6 +3,13 @@ from lin_clf.optimizer import Optimizer
 
 
 class SGD(Optimizer):
+    """Stochastic gradient descent with momentum.
+
+    Applies exponential momentum ``v`` and updates weights as
+    ``w = w - h * v``. When ``h`` is ``None`` the optimal step size is
+    computed from the quadratic loss model (steepest gradient descent).
+    """
+
     mom_v = None
 
     def __init__(self, model: Model, momentum_k: float, h: float | None = None):

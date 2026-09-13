@@ -55,7 +55,7 @@ $$
 
 **Вектор градиента:**
 $$
-\boxed{ \nabla L(A) = \left[ -\frac{2}{n} X^T \cdot Y + \left( \frac{2}{n} X^T \cdot (Y^{\odot 2} \odot X) + \gamma I \right) \cdot A \right]_{(m, 1)} }
+\boxed{ \nabla L(A) = \left[ -\frac{2}{n} X^T \cdot Y + \left( \frac{2}{n} X^T \cdot (Y^{2} \odot X) + \gamma I \right) \cdot A \right]_{(m, 1)} }
 $$
 
 Обозначим вспомогательные матрицы:
@@ -63,7 +63,7 @@ $$
 C_1 = \left[-\frac{2}{n} X^T \cdot Y\right]_{(m, 1)} 
 $$
 $$
-C_2 = \left[ \frac{2}{n} X^T \cdot (Y^{\odot 2} \odot X) + \gamma I \right]_{(m, m)} 
+C_2 = \left[ \frac{2}{n} X^T \cdot (Y^{2} \odot X) + \gamma I \right]_{(m, m)} 
 $$
 
 Тогда градиент принимает компактный вид:
@@ -108,7 +108,7 @@ $$
 C_1 = -\frac{2}{n} X^T \cdot Y 
 $$
 $$
-C_2 = \frac{2}{n} X^T \cdot (Y^{\odot 2} \odot X) + \gamma I 
+C_2 = \frac{2}{n} X^T \cdot (Y^{2} \odot X) + \gamma I 
 $$
 $$
 D = C_1 + C_2 \cdot A 

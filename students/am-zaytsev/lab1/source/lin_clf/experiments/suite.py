@@ -10,6 +10,12 @@ from lin_clf.experiments.trainers.speed_sgd import train_speed_sgd
 
 @dataclass
 class SuiteResult:
+    """Results of the full experiment suite, keyed by run name.
+
+    ``runs`` maps a run name to its ``TrainResult`` and ``aggregates`` maps a
+    run name to mean/std statistics for multistart runs.
+    """
+
     runs: dict
     aggregates: dict
 

@@ -25,7 +25,7 @@
 
 Отступ: $M_i = y_i \langle w, x_i \rangle$, где $x_i$ дополнен константным признаком (bias).
 
-Реализация: `predict_margin` — `source/lin_clf/model/LinearClassifier.py:14`.
+Реализация: `predict_margin` — `source/lin_clf/model/LinearClassifier.py:21`.
 
 **Random init**
 
@@ -54,7 +54,7 @@ $$\nabla Q(w) =  \left[
 
 Вывод формулы в `students/am-zaytsev/lab1/source/lin_clf/model/README.md`
 
-Реализация: `diff` — `source/lin_clf/model/LinearClassifier.py:30`. Возвращает `dL`, `c1`, `c2`.
+Реализация: `diff` — `source/lin_clf/model/LinearClassifier.py:37`. Возвращает `dL`, `c1`, `c2`.
 
 ## 4. Рекуррентная оценка функционала качества
 
@@ -62,20 +62,20 @@ $$\nabla Q(w) =  \left[
 
 $$Q_t = (1-\alpha)\,Q_{t-1} + \alpha\,Q, \qquad \alpha = 0.01$$
 
-Реализация — `source/lin_clf/experiments/runner.py:51`.
+Реализация — `source/lin_clf/experiments/runner.py:53`.
 
 ## 5. Стохастический градиентный спуск с инерцией
 
 $$v_t = (1-k)\,v_{t-1} + k\,\nabla Q(w_t), \qquad w_{t+1} = w_t - h\,v_t$$
 
-Реализация: `source/lin_clf/optimizer/sgd.py` (`SGD.step`, `source/lin_clf/optimizer/sgd.py:16`). Параметры: `momentum_k = 0.01`, `h = 0.001`.
+Реализация: `source/lin_clf/optimizer/sgd.py` (`SGD.step`, `source/lin_clf/optimizer/sgd.py:23`). Параметры: `momentum_k = 0.01`, `h = 0.001`.
 
 ## 6. L2 регуляризация
 
 Модель: `source/lin_clf/model/LinearClassifier.py`.
 
-- В функции потерь: слагаемое `self.tao / 2 * self.w.T.dot(self.w)` — `source/lin_clf/model/LinearClassifier.py:24`.
-- В градиенте: слагаемое `self.tao * np.eye(...)` в матрице `c2` — `source/lin_clf/model/LinearClassifier.py:35`.
+- В функции потерь: слагаемое `self.tao / 2 * self.w.T.dot(self.w)` — `source/lin_clf/model/LinearClassifier.py:31`.
+- В градиенте: слагаемое `self.tao * np.eye(...)` в матрице `c2` — `source/lin_clf/model/LinearClassifier.py:42`.
 
 ## 7. Наискорейший градиентный спуск
 
@@ -85,7 +85,7 @@ $$h^{*} = \frac{\nabla Q^{T} c_1 + \nabla Q^{T} c_2 w}{\nabla Q^{T} c_2 \nabla Q
 
 Вывод формулы в `students/am-zaytsev/lab1/source/lin_clf/model/README.md`
 
-Реализация: `count_h_star` — `source/lin_clf/optimizer/sgd.py:13`; включается при `h=None`. Для `speed_sgd` задано `momentum_k = 1.0`, `h = None` (`source/lin_clf/experiments/suite.py:54`).
+Реализация: `count_h_star` — `source/lin_clf/optimizer/sgd.py:20`; включается при `h=None`. Для `speed_sgd` задано `momentum_k = 1.0`, `h = None` (`source/lin_clf/experiments/suite.py:60`).
 
 ## 8. Предъявление объектов по модулю отступа
 
@@ -93,7 +93,7 @@ $$h^{*} = \frac{\nabla Q^{T} c_1 + \nabla Q^{T} c_2 w}{\nabla Q^{T} c_2 \nabla Q
 
 $$p_i = \frac{(1 - M_i)^2}{\sum_j (1 - M_j)^2}$$
 
-Реализация: `if config.fetch_prob` — `source/lin_clf/experiments/runner.py:38`; сэмплирование — `fetch_batch(..., prob)` (`source/lin_clf/data/utils.py:67`).
+Реализация: `if config.fetch_prob` — `source/lin_clf/experiments/runner.py:40`; сэмплирование — `fetch_batch(..., prob)` (`source/lin_clf/data/utils.py:67`).
 
 ## 9. Обучение
 

@@ -4,6 +4,13 @@ from .Model import Model
 
 
 class LinearClassifier(Model):
+    """Linear classifier with a squared loss and L2 regularization.
+
+    The weight vector includes a bias term; features are padded with a
+    constant one via ``_add_ones`` before use. The loss is
+    ``mean((1 - margin)^2) + tao / 2 * ||w||^2``.
+    """
+
     def __init__(self, tao=0.01):
         self.tao = tao
 
