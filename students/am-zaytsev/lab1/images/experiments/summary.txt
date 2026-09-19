@@ -1,6 +1,0 @@
-rand: test_accuracy=0.9474 epochs_run=5546 mean=0.9439 std=0.0043
-rand_fetch_prob: test_accuracy=0.9561 epochs_run=3660 mean=0.9535 std=0.0040
-corr: test_accuracy=0.9123 epochs_run=1515
-corr_fetch_prob: test_accuracy=0.9211 epochs_run=3398
-speed_sgd: test_accuracy=0.9737 epochs_run=696
-best: speed_sgd test_accuracy=0.9737
