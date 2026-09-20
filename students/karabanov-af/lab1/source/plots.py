@@ -32,3 +32,19 @@ def plot_sorted_margins(m, title, path):
     fig.tight_layout()
     fig.savefig(path, dpi=110)
     plt.close(fig)
+
+
+def plot_risk(history, title, path):
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    ax.plot(history, color="#2a78d6", linewidth=2, label="эмпирический риск Q")
+    ax.set_xlabel("эпоха")
+    ax.set_ylabel("Q")
+    ax.set_title(title)
+    ax.set_yscale("log")
+    ax.legend()
+    ax.grid(alpha=0.3)
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fig.tight_layout()
+    fig.savefig(path, dpi=110)
+    plt.close(fig)
