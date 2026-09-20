@@ -3,7 +3,8 @@ import os
 import numpy as np
 
 import plots
-from classifier import bias_mask, empirical_risk, loss_gradient, margins, quadratic_loss, sgd
+from classifier import (bias_mask, correlation_weights, empirical_risk, loss_gradient, margins,
+                        multistart, quadratic_loss, random_weights, sgd)
 from data import add_bias, load_binary_iris, standardize
 
 IMAGES = os.path.join(os.path.dirname(__file__), "..", "images")
@@ -94,6 +95,29 @@ def sampling_experiment(X, y, w):
     print()
 
 
+def init_experiment(X, y, w):
+    print("## Инициализация весов")
+    params = dict(lr=0.01, momentum=0.9, l2=0.01, n_epochs=50)
+    histories = {}
+
+    w_corr = correlation_weights(X, y)
+    print("веса через корреляцию:", np.round(w_corr, 3))
+    for label, w0 in [("случайные веса", w), ("через корреляцию", w_corr)]:
+        w_init, history = sgd(X, y, w0, **params)
+        histories[label] = history["risk"]
+        print(f"{label}: Q до обучения {history['risk'][0]:.3f} -> {history['risk'][-1]:.3f}, "
+              f"ошибок {(margins(w_init, X, y) < 0).sum()}")
+    plots.plot_risk(histories, "Инициализация весов", os.path.join(IMAGES, "init.png"))
+
+    best, runs = multistart(X, y, n_starts=10, **params)
+    finals = [run[1]["risk"][-1] for run in runs]
+    print(f"мультистарт (10 запусков): Q от {min(finals):.4f} до {max(finals):.4f}, "
+          f"ошибок у лучшего {(margins(best[0], X, y) < 0).sum()}")
+    plots.plot_multistart(runs, best, "Мультистарт: 10 случайных инициализаций",
+                          os.path.join(IMAGES, "multistart.png"))
+    print()
+
+
 def l2_experiment(X, y, w):
     print("## L2-регуляризация")
     taus = np.logspace(-4, 1, 11)
@@ -115,7 +139,7 @@ def main():
 
     rng = np.random.default_rng(0)
     d = X.shape[1]
-    w = rng.uniform(-1 / (2 * d), 1 / (2 * d), size=d)
+    w = random_weights(rng, d)
     print("случайные веса:", np.round(w, 3), "\n")
 
     margin_analysis(X, y, w)
@@ -124,6 +148,7 @@ def main():
     l2_experiment(X, y, w)
     optimizer_experiment(X, y, w)
     sampling_experiment(X, y, w)
+    init_experiment(X, y, w)
 
 
 if __name__ == "__main__":

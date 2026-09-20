@@ -8,7 +8,7 @@ from matplotlib.patches import Patch
 import numpy as np
 
 CORRECT, WRONG = "#2e8b57", "#d03b3b"
-CURVES = ["#2a78d6", "#eb6834"]
+CURVES = ["#2a78d6", "#eb6834", "#1baf7a"]
 
 
 def plot_sorted_margins(m, title, path):
@@ -59,7 +59,7 @@ def plot_l2(taus, risk, errors, norm, title, path):
         (errors, "ошибок (M < 0)", "Число ошибок", "ошибок из 100"),
         (norm, "||w||", "Норма весов", "||w|| без bias"),
     ]
-    for ax, (values, ylabel, title_ax, label), color in zip(axes, panels, CURVES + ["#1baf7a"]):
+    for ax, (values, ylabel, title_ax, label), color in zip(axes, panels, CURVES):
         ax.plot(taus, values, marker="o", color=color, label=label)
         ax.set_xscale("log")
         ax.set_xlabel("коэффициент регуляризации tau")
@@ -69,6 +69,26 @@ def plot_l2(taus, risk, errors, norm, title, path):
         ax.grid(alpha=0.3)
 
     fig.suptitle(title)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fig.tight_layout()
+    fig.savefig(path, dpi=110)
+    plt.close(fig)
+
+
+def plot_multistart(runs, best, title, path):
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    for k, (_, history) in enumerate(runs):
+        ax.plot(history["risk"], color="#9a9a9a", linewidth=1, alpha=0.7,
+                label="остальные запуски" if k == 0 else None)
+    ax.plot(best[1]["risk"], color=CURVES[0], linewidth=2,
+            label=f"лучший запуск, Q = {best[1]['risk'][-1]:.3f}")
+    ax.set_xlabel("эпоха")
+    ax.set_ylabel("Q")
+    ax.set_title(title)
+    ax.set_yscale("log")
+    ax.legend()
+    ax.grid(alpha=0.3)
+
     os.makedirs(os.path.dirname(path), exist_ok=True)
     fig.tight_layout()
     fig.savefig(path, dpi=110)

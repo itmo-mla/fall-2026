@@ -28,6 +28,15 @@ def empirical_risk(w, X, y, l2=0.0):
     return quadratic_loss(margins(w, X, y)).mean() + penalty
 
 
+def correlation_weights(X, y):
+    """w_j = <y, f_j> / <f_j, f_j>: every weight is set by how well the feature alone matches the label."""
+    return (y @ X) / (X ** 2).sum(axis=0)
+
+
+def random_weights(rng, d):
+    return rng.uniform(-1 / (2 * d), 1 / (2 * d), size=d)
+
+
 def epoch_order(rng, w, X, y, sampling, temperature):
     """Random permutation, or sampling by the absolute margin: p ~ exp(-|M| / T)."""
     n = len(y)
@@ -71,3 +80,13 @@ def sgd(X, y, w, lr=0.01, momentum=0.0, l2=0.0, n_epochs=50, seed=0, forgetting=
         history["Q"].append(Q)
         history["risk"].append(empirical_risk(w, X, y, l2))
     return w, history
+
+
+def multistart(X, y, n_starts=10, **params):
+    """Trains from several random initial weights and keeps the run with the lowest final risk."""
+    runs = []
+    for k in range(n_starts):
+        w0 = random_weights(np.random.default_rng(k), X.shape[1])
+        runs.append(sgd(X, y, w0, seed=k, **params))
+    best = min(runs, key=lambda run: run[1]["risk"][-1])
+    return best, runs
