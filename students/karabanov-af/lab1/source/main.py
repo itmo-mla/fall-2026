@@ -50,14 +50,21 @@ def training(X, y, w):
     for label, momentum in [("SGD без инерции", 0.0), ("SGD с инерцией", 0.9)]:
         trained[label], histories[label] = sgd(X, y, w, lr=0.01, momentum=momentum, n_epochs=50)
         m = margins(trained[label], X, y)
-        print(f"{label}: Q {histories[label][0]:.3f} -> {histories[label][-1]:.3f}, "
+        print(f"{label}: Q {histories[label]['risk'][0]:.3f} -> {histories[label]['risk'][-1]:.3f}, "
               f"ошибок {(margins(w, X, y) < 0).sum()} -> {(m < 0).sum()}")
         print("  веса:", np.round(trained[label], 3))
 
     best = trained["SGD с инерцией"]
     plots.plot_sorted_margins(margins(best, X, y), "Отступы объектов после обучения",
                               os.path.join(IMAGES, "margins_trained.png"))
-    plots.plot_risk(histories, "Эмпирический риск по эпохам", os.path.join(IMAGES, "risk.png"))
+    plots.plot_risk({label: h["risk"] for label, h in histories.items()},
+                    "Эмпирический риск по эпохам", os.path.join(IMAGES, "risk.png"))
+
+    best_history = histories["SGD с инерцией"]
+    print(f"рекуррентная оценка Q после обучения: {best_history['Q'][-1]:.3f}, "
+          f"риск по всей выборке: {best_history['risk'][-1]:.3f}")
+    plots.plot_risk({"риск по всей выборке": best_history["risk"], "рекуррентная оценка Q": best_history["Q"]},
+                    "Рекуррентная оценка функционала качества", os.path.join(IMAGES, "recurrent_q.png"))
     print()
     return best
 

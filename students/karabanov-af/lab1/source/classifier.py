@@ -20,17 +20,24 @@ def empirical_risk(w, X, y):
     return quadratic_loss(margins(w, X, y)).mean()
 
 
-def sgd(X, y, w, lr=0.01, momentum=0.0, n_epochs=50, seed=0):
+def sgd(X, y, w, lr=0.01, momentum=0.0, n_epochs=50, seed=0, forgetting=None):
     """SGD with momentum: v = gamma * v + (1 - gamma) * lr * grad, then w = w - v.
 
     Objects are reshuffled every epoch, momentum = 0 gives plain SGD.
+    Q is estimated recurrently: Q = lam * loss(i) + (1 - lam) * Q, lam = 1 / len(y) by default.
+    history keeps the recurrent estimate and the true risk over the whole sample after each epoch.
     """
     rng = np.random.default_rng(seed)
+    lam = forgetting if forgetting is not None else 1 / len(y)
     v = np.zeros_like(w)
-    history = [empirical_risk(w, X, y)]
+    Q = empirical_risk(w, X, y)
+    history = {"Q": [Q], "risk": [Q]}
     for _ in range(n_epochs):
         for i in rng.permutation(len(y)):
+            loss = quadratic_loss(y[i] * (X[i] @ w))
             v = momentum * v + (1 - momentum) * lr * loss_gradient(w, X[i], y[i])
             w = w - v
-        history.append(empirical_risk(w, X, y))
+            Q = lam * loss + (1 - lam) * Q
+        history["Q"].append(Q)
+        history["risk"].append(empirical_risk(w, X, y))
     return w, history
