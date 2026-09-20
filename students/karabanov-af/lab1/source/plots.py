@@ -8,6 +8,7 @@ from matplotlib.patches import Patch
 import numpy as np
 
 CORRECT, WRONG = "#2e8b57", "#d03b3b"
+CURVES = ["#2a78d6", "#eb6834"]
 
 
 def plot_sorted_margins(m, title, path):
@@ -34,9 +35,10 @@ def plot_sorted_margins(m, title, path):
     plt.close(fig)
 
 
-def plot_risk(history, title, path):
+def plot_risk(histories, title, path):
     fig, ax = plt.subplots(figsize=(9, 4.5))
-    ax.plot(history, color="#2a78d6", linewidth=2, label="эмпирический риск Q")
+    for (label, history), color in zip(histories.items(), CURVES):
+        ax.plot(history, color=color, linewidth=2, label=label)
     ax.set_xlabel("эпоха")
     ax.set_ylabel("Q")
     ax.set_title(title)

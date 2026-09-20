@@ -45,16 +45,21 @@ def gradient_check(X, y, w):
 
 
 def training(X, y, w):
-    print("## Обучение (SGD без инерции)")
-    w_trained, history = sgd(X, y, w, lr=0.01, n_epochs=50)
-    m = margins(w_trained, X, y)
-    print("веса после обучения:", np.round(w_trained, 3))
-    print(f"Q: {history[0]:.3f} -> {history[-1]:.3f}")
-    print(f"ошибок (M < 0): {(margins(w, X, y) < 0).sum()} -> {(m < 0).sum()}\n")
-    plots.plot_sorted_margins(m, "Отступы объектов после обучения",
+    print("## Обучение")
+    histories, trained = {}, {}
+    for label, momentum in [("SGD без инерции", 0.0), ("SGD с инерцией", 0.9)]:
+        trained[label], histories[label] = sgd(X, y, w, lr=0.01, momentum=momentum, n_epochs=50)
+        m = margins(trained[label], X, y)
+        print(f"{label}: Q {histories[label][0]:.3f} -> {histories[label][-1]:.3f}, "
+              f"ошибок {(margins(w, X, y) < 0).sum()} -> {(m < 0).sum()}")
+        print("  веса:", np.round(trained[label], 3))
+
+    best = trained["SGD с инерцией"]
+    plots.plot_sorted_margins(margins(best, X, y), "Отступы объектов после обучения",
                               os.path.join(IMAGES, "margins_trained.png"))
-    plots.plot_risk(history, "Эмпирический риск по эпохам", os.path.join(IMAGES, "risk.png"))
-    return w_trained
+    plots.plot_risk(histories, "Эмпирический риск по эпохам", os.path.join(IMAGES, "risk.png"))
+    print()
+    return best
 
 
 def main():
