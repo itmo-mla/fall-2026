@@ -69,6 +69,18 @@ def training(X, y, w):
     return best
 
 
+def optimizer_experiment(X, y, w):
+    print("## Скорейший градиентный спуск")
+    histories = {}
+    for label, steepest in [("постоянный шаг", False), ("скорейший спуск", True)]:
+        w_opt, history = sgd(X, y, w, lr=0.01, momentum=0.9, l2=0.01, n_epochs=50, steepest=steepest)
+        histories[label] = history["risk"]
+        print(f"{label}: Q {history['risk'][-1]:.3f}, ошибок {(margins(w_opt, X, y) < 0).sum()}, "
+              f"минимум Q за обучение {min(history['risk']):.3f}")
+    plots.plot_risk(histories, "Постоянный шаг и скорейший спуск", os.path.join(IMAGES, "steepest.png"))
+    print()
+
+
 def l2_experiment(X, y, w):
     print("## L2-регуляризация")
     taus = np.logspace(-4, 1, 11)
@@ -97,6 +109,7 @@ def main():
     gradient_check(X, y, w)
     training(X, y, w)
     l2_experiment(X, y, w)
+    optimizer_experiment(X, y, w)
 
 
 if __name__ == "__main__":
