@@ -1,11 +1,12 @@
 import os
 
 import numpy as np
+from sklearn.linear_model import RidgeClassifier, SGDClassifier
 
 import plots
 from classifier import (bias_mask, correlation_weights, empirical_risk, loss_gradient, margins,
                         multistart, predict, quadratic_loss, random_weights, sgd)
-from data import add_bias, load_binary_iris, standardize, train_test_split
+from data import FEATURES, add_bias, load_binary_iris, standardize, train_test_split
 from metrics import accuracy, confusion_matrix, f1, precision, recall
 
 IMAGES = os.path.join(os.path.dirname(__file__), "..", "images")
@@ -147,6 +148,34 @@ def evaluation(X_train, X_test, y_train, y_test, w):
     return w_trained
 
 
+def reference_comparison(X_train, X_test, y_train, y_test, w_own):
+    print("## Сравнение с эталоном")
+    tau = 0.01
+    # sklearn minimizes the same Q: Ridge takes alpha = l * tau / 2, SGDClassifier takes alpha = tau / 2
+    references = {
+        "RidgeClassifier": RidgeClassifier(alpha=len(y_train) * tau / 2),
+        "SGDClassifier": SGDClassifier(loss="squared_error", penalty="l2", alpha=tau / 2,
+                                       learning_rate="constant", eta0=0.01, max_iter=50, tol=None, random_state=0),
+    }
+
+    weights = {"своя реализация": w_own}
+    predictions = {"своя реализация": predict(w_own, X_test)}
+    for name, model in references.items():
+        model.fit(X_train[:, :-1], y_train)
+        weights[name] = np.append(model.coef_.ravel(), model.intercept_)
+        predictions[name] = model.predict(X_test[:, :-1])
+
+    for name, y_pred in predictions.items():
+        print(f"{name}: accuracy {accuracy(y_test, y_pred):.3f}, precision {precision(y_test, y_pred):.3f}, "
+              f"recall {recall(y_test, y_pred):.3f}, f1 {f1(y_test, y_pred):.3f}")
+    print("веса:")
+    for name, w in weights.items():
+        print(f"  {name:<16} {np.round(w, 3)}")
+    plots.plot_weights(weights, FEATURES + ["bias"], "Веса: своя реализация и эталон",
+                       os.path.join(IMAGES, "weights.png"))
+    print()
+
+
 def main():
     X, y = load_binary_iris()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, seed=42)
@@ -166,7 +195,8 @@ def main():
     optimizer_experiment(X_train, y_train, w)
     sampling_experiment(X_train, y_train, w)
     init_experiment(X_train, y_train, w)
-    evaluation(X_train, X_test, y_train, y_test, w)
+    w_trained = evaluation(X_train, X_test, y_train, y_test, w)
+    reference_comparison(X_train, X_test, y_train, y_test, w_trained)
 
 
 if __name__ == "__main__":

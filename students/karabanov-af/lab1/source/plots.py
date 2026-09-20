@@ -93,3 +93,23 @@ def plot_multistart(runs, best, title, path):
     fig.tight_layout()
     fig.savefig(path, dpi=110)
     plt.close(fig)
+
+
+def plot_weights(weights, feature_names, title, path):
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    width = 0.8 / len(weights)
+    x = np.arange(len(feature_names))
+    for k, ((name, w), color) in enumerate(zip(weights.items(), CURVES)):
+        ax.bar(x + (k - (len(weights) - 1) / 2) * width, w, width=width * 0.9, color=color, label=name)
+    ax.axhline(0, color="black", linewidth=1)
+    ax.set_xticks(x, feature_names)
+    ax.set_xlabel("признак")
+    ax.set_ylabel("вес")
+    ax.set_title(title)
+    ax.legend()
+    ax.grid(alpha=0.3)
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fig.tight_layout()
+    fig.savefig(path, dpi=110)
+    plt.close(fig)
