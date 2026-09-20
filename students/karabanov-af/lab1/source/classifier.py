@@ -28,17 +28,29 @@ def empirical_risk(w, X, y, l2=0.0):
     return quadratic_loss(margins(w, X, y)).mean() + penalty
 
 
+def epoch_order(rng, w, X, y, sampling, temperature):
+    """Random permutation, or sampling by the absolute margin: p ~ exp(-|M| / T)."""
+    n = len(y)
+    if sampling == "random":
+        return rng.permutation(n)
+    m = np.abs(margins(w, X, y))
+    p = np.exp(-(m - m.min()) / temperature)
+    return rng.choice(n, size=n, p=p / p.sum())
+
+
 def steepest_step(x, grad, l2, mask):
     """h* = argmin_h Q_i(w - h * grad): closed form for the quadratic loss with L2."""
     denom = 2 * (grad @ x) ** 2 + l2 * np.sum((mask * grad) ** 2)
     return (grad @ grad) / denom if denom > 1e-12 else 0.0
 
 
-def sgd(X, y, w, lr=0.01, momentum=0.0, l2=0.0, n_epochs=50, seed=0, forgetting=None, steepest=False):
+def sgd(X, y, w, lr=0.01, momentum=0.0, l2=0.0, n_epochs=50, seed=0, forgetting=None, steepest=False,
+        sampling="random", temperature=1.0):
     """SGD with momentum: v = gamma * v + (1 - gamma) * lr * grad, then w = w - v.
 
     Objects are reshuffled every epoch, momentum = 0 gives plain SGD.
     With steepest = True the step is computed per object instead of using lr.
+    With sampling = "margin" objects near the decision boundary are shown more often.
     Q is estimated recurrently: Q = lam * loss(i) + (1 - lam) * Q, lam = 1 / len(y) by default.
     history keeps the recurrent estimate and the true risk over the whole sample after each epoch.
     """
@@ -49,7 +61,7 @@ def sgd(X, y, w, lr=0.01, momentum=0.0, l2=0.0, n_epochs=50, seed=0, forgetting=
     Q = empirical_risk(w, X, y, l2)
     history = {"Q": [Q], "risk": [Q]}
     for _ in range(n_epochs):
-        for i in rng.permutation(len(y)):
+        for i in epoch_order(rng, w, X, y, sampling, temperature):
             loss = quadratic_loss(y[i] * (X[i] @ w))
             grad = loss_gradient(w, X[i], y[i]) + l2 * mask * w
             h = steepest_step(X[i], grad, l2, mask) if steepest else lr

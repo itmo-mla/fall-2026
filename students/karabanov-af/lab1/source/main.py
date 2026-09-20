@@ -81,6 +81,19 @@ def optimizer_experiment(X, y, w):
     print()
 
 
+def sampling_experiment(X, y, w):
+    print("## Предъявление объектов по модулю отступа")
+    histories = {}
+    for label, sampling in [("случайное предъявление", "random"), ("по модулю отступа", "margin")]:
+        w_s, history = sgd(X, y, w, lr=0.01, momentum=0.9, l2=0.01, n_epochs=50, sampling=sampling)
+        histories[label] = history["risk"]
+        m = margins(w_s, X, y)
+        print(f"{label}: Q {history['risk'][-1]:.3f}, ошибок {(m < 0).sum()}, "
+              f"пограничных |M| < 0.3: {(np.abs(m) < 0.3).sum()}")
+    plots.plot_risk(histories, "Порядок предъявления объектов", os.path.join(IMAGES, "sampling.png"))
+    print()
+
+
 def l2_experiment(X, y, w):
     print("## L2-регуляризация")
     taus = np.logspace(-4, 1, 11)
@@ -110,6 +123,7 @@ def main():
     training(X, y, w)
     l2_experiment(X, y, w)
     optimizer_experiment(X, y, w)
+    sampling_experiment(X, y, w)
 
 
 if __name__ == "__main__":
