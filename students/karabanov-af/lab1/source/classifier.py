@@ -22,6 +22,10 @@ def bias_mask(d):
     return mask
 
 
+def predict(w, X):
+    return np.where(X @ w >= 0, 1, -1)
+
+
 def empirical_risk(w, X, y, l2=0.0):
     """Q(w) = mean loss over the whole sample + tau / 2 * ||w||^2."""
     penalty = 0.5 * l2 * np.sum((bias_mask(len(w)) * w) ** 2)

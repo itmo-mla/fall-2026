@@ -4,8 +4,9 @@ import numpy as np
 
 import plots
 from classifier import (bias_mask, correlation_weights, empirical_risk, loss_gradient, margins,
-                        multistart, quadratic_loss, random_weights, sgd)
-from data import add_bias, load_binary_iris, standardize
+                        multistart, predict, quadratic_loss, random_weights, sgd)
+from data import add_bias, load_binary_iris, standardize, train_test_split
+from metrics import accuracy, confusion_matrix, f1, precision, recall
 
 IMAGES = os.path.join(os.path.dirname(__file__), "..", "images")
 
@@ -132,23 +133,40 @@ def l2_experiment(X, y, w):
     print()
 
 
+def evaluation(X_train, X_test, y_train, y_test, w):
+    print("## Качество классификации на отложенной выборке")
+    w_trained, _ = sgd(X_train, y_train, w, lr=0.01, momentum=0.9, l2=0.01, n_epochs=50)
+    for name, X_part, y_part in [("обучение", X_train, y_train), ("тест", X_test, y_test)]:
+        y_pred = predict(w_trained, X_part)
+        print(f"{name}: accuracy {accuracy(y_part, y_pred):.3f}, precision {precision(y_part, y_pred):.3f}, "
+              f"recall {recall(y_part, y_pred):.3f}, f1 {f1(y_part, y_pred):.3f}")
+    cm = confusion_matrix(y_test, predict(w_trained, X_test))
+    print("матрица ошибок на тесте (строки — истинный класс, столбцы — предсказанный):")
+    print(f"  versicolor: {cm[0]}")
+    print(f"  virginica:  {cm[1]}\n")
+    return w_trained
+
+
 def main():
     X, y = load_binary_iris()
-    X = add_bias(standardize(X))
-    print(f"объектов: {X.shape[0]}, признаков с bias: {X.shape[1]}")
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, seed=42)
+    X_test = add_bias(standardize(X_test, reference=X_train))
+    X_train = add_bias(standardize(X_train))
+    print(f"обучение: {X_train.shape}, тест: {X_test.shape}")
 
     rng = np.random.default_rng(0)
-    d = X.shape[1]
+    d = X_train.shape[1]
     w = random_weights(rng, d)
     print("случайные веса:", np.round(w, 3), "\n")
 
-    margin_analysis(X, y, w)
-    gradient_check(X, y, w)
-    training(X, y, w)
-    l2_experiment(X, y, w)
-    optimizer_experiment(X, y, w)
-    sampling_experiment(X, y, w)
-    init_experiment(X, y, w)
+    margin_analysis(X_train, y_train, w)
+    gradient_check(X_train, y_train, w)
+    training(X_train, y_train, w)
+    l2_experiment(X_train, y_train, w)
+    optimizer_experiment(X_train, y_train, w)
+    sampling_experiment(X_train, y_train, w)
+    init_experiment(X_train, y_train, w)
+    evaluation(X_train, X_test, y_train, y_test, w)
 
 
 if __name__ == "__main__":
