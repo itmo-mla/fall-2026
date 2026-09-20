@@ -1,9 +1,8 @@
 from pathlib import Path
 
 import kagglehub
-import pandas as pd
 import numpy as np
-
+import pandas as pd
 
 COLUMNS = [
     "preg",
@@ -150,8 +149,8 @@ def train_val_test_split(
 class StandardScaler:
     def __init__(self, eps: float = 1e-12):
         self.means = None
-        self.stds = None 
-        self.eps = eps 
+        self.stds = None
+        self.eps = eps
 
     def fit(
             self,
