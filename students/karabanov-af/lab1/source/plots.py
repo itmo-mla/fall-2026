@@ -50,3 +50,26 @@ def plot_risk(histories, title, path):
     fig.tight_layout()
     fig.savefig(path, dpi=110)
     plt.close(fig)
+
+
+def plot_l2(taus, risk, errors, norm, title, path):
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4))
+    panels = [
+        (risk, "Q", "Риск на обучении", "эмпирический риск Q"),
+        (errors, "ошибок (M < 0)", "Число ошибок", "ошибок из 100"),
+        (norm, "||w||", "Норма весов", "||w|| без bias"),
+    ]
+    for ax, (values, ylabel, title_ax, label), color in zip(axes, panels, CURVES + ["#1baf7a"]):
+        ax.plot(taus, values, marker="o", color=color, label=label)
+        ax.set_xscale("log")
+        ax.set_xlabel("коэффициент регуляризации tau")
+        ax.set_ylabel(ylabel)
+        ax.set_title(title_ax)
+        ax.legend()
+        ax.grid(alpha=0.3)
+
+    fig.suptitle(title)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fig.tight_layout()
+    fig.savefig(path, dpi=110)
+    plt.close(fig)

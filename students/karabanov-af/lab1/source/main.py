@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 import plots
-from classifier import empirical_risk, loss_gradient, margins, quadratic_loss, sgd
+from classifier import bias_mask, empirical_risk, loss_gradient, margins, quadratic_loss, sgd
 from data import add_bias, load_binary_iris, standardize
 
 IMAGES = os.path.join(os.path.dirname(__file__), "..", "images")
@@ -69,6 +69,20 @@ def training(X, y, w):
     return best
 
 
+def l2_experiment(X, y, w):
+    print("## L2-регуляризация")
+    taus = np.logspace(-4, 1, 11)
+    risk, errors, norm = [], [], []
+    for tau in taus:
+        w_tau, _ = sgd(X, y, w, lr=0.01, momentum=0.9, l2=tau, n_epochs=50)
+        risk.append(empirical_risk(w_tau, X, y, tau))
+        errors.append((margins(w_tau, X, y) < 0).sum())
+        norm.append(np.linalg.norm(bias_mask(len(w_tau)) * w_tau))
+        print(f"tau = {tau:<8.4g} Q = {risk[-1]:.3f}  ошибок = {errors[-1]:3d}  ||w|| = {norm[-1]:.3f}")
+    plots.plot_l2(taus, risk, errors, norm, "Влияние L2-регуляризации", os.path.join(IMAGES, "l2.png"))
+    print()
+
+
 def main():
     X, y = load_binary_iris()
     X = add_bias(standardize(X))
@@ -82,6 +96,7 @@ def main():
     margin_analysis(X, y, w)
     gradient_check(X, y, w)
     training(X, y, w)
+    l2_experiment(X, y, w)
 
 
 if __name__ == "__main__":

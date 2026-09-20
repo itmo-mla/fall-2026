@@ -15,12 +15,20 @@ def loss_gradient(w, x, y):
     return -2 * (1 - m) * y * x
 
 
-def empirical_risk(w, X, y):
-    """Q(w) = mean loss over the whole sample."""
-    return quadratic_loss(margins(w, X, y)).mean()
+def bias_mask(d):
+    """Ones for the features and zero for the bias column: the free term is not regularized."""
+    mask = np.ones(d)
+    mask[-1] = 0.0
+    return mask
 
 
-def sgd(X, y, w, lr=0.01, momentum=0.0, n_epochs=50, seed=0, forgetting=None):
+def empirical_risk(w, X, y, l2=0.0):
+    """Q(w) = mean loss over the whole sample + tau / 2 * ||w||^2."""
+    penalty = 0.5 * l2 * np.sum((bias_mask(len(w)) * w) ** 2)
+    return quadratic_loss(margins(w, X, y)).mean() + penalty
+
+
+def sgd(X, y, w, lr=0.01, momentum=0.0, l2=0.0, n_epochs=50, seed=0, forgetting=None):
     """SGD with momentum: v = gamma * v + (1 - gamma) * lr * grad, then w = w - v.
 
     Objects are reshuffled every epoch, momentum = 0 gives plain SGD.
@@ -29,15 +37,17 @@ def sgd(X, y, w, lr=0.01, momentum=0.0, n_epochs=50, seed=0, forgetting=None):
     """
     rng = np.random.default_rng(seed)
     lam = forgetting if forgetting is not None else 1 / len(y)
+    mask = bias_mask(len(w))
     v = np.zeros_like(w)
-    Q = empirical_risk(w, X, y)
+    Q = empirical_risk(w, X, y, l2)
     history = {"Q": [Q], "risk": [Q]}
     for _ in range(n_epochs):
         for i in rng.permutation(len(y)):
             loss = quadratic_loss(y[i] * (X[i] @ w))
-            v = momentum * v + (1 - momentum) * lr * loss_gradient(w, X[i], y[i])
+            grad = loss_gradient(w, X[i], y[i]) + l2 * mask * w
+            v = momentum * v + (1 - momentum) * lr * grad
             w = w - v
             Q = lam * loss + (1 - lam) * Q
         history["Q"].append(Q)
-        history["risk"].append(empirical_risk(w, X, y))
+        history["risk"].append(empirical_risk(w, X, y, l2))
     return w, history
