@@ -1,0 +1,2 @@
+test_accuracy 0.9122807017543859
+epochs_run 1515
