@@ -1,0 +1,7 @@
+NOTES_FOR_ME.md
+EXPLANATION.md
+THEORY.md
+THEORY_EXAMPLES.md
+__pycache__/
+*.pyc
+.DS_Store

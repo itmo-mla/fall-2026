@@ -1,0 +1,5 @@
+NOTES_FOR_ME.md
+EXPLANATION.md
+__pycache__/
+*.pyc
+.DS_Store
