@@ -32,7 +32,7 @@ class LinearClassifier:
             p = random_prob / n+ (1.0 - random_prob) * p_margin
             idx = self.rng.choice(n, size= batch_size, replace = False, p = p)
         else:
-            raise  ValueError(f"Неизвестный семлинг {sampling}")
+            raise  ValueError(f"Неизвестный семплинг {sampling}")
         return  x[idx], y[idx]
 
 

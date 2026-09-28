@@ -10,7 +10,9 @@ if __name__ ==  "__main__":
     tao = 0.8
     start_type = ["correlation","random","multi"]
     f1_scores = []
-    f1_type = []
+    type = []
+    acc = []
+
 
     data = load_data()
     data = prepare_data(data)
@@ -29,33 +31,40 @@ if __name__ ==  "__main__":
     y_tr, y_te = y[tr], y[te]
     for mode in ["train", "random", "corr"]:
         visualise_marg(X_te,y_te, mode)
+    model = LinearClassifier()
 
-"""
     for start in start_type:
         print(f"{start}")
         if start == "multi":
             max_score = 0
+            temp_sc = 0
             for i in range(10):
                 model.fit(X_tr, y[tr], n_iter=1000, batch_size=264, momentum=0.8, verbose=300, sampling= "margin", tao = tao)
                 pred = model.predict(X_te)
                 f1 = f1_score(y_te, pred)
+                temp_sc = accuracy(y_te, pred)
                 max_score = max(f1, max_score)
+
             f1_scores.append(max_score)
-            f1_type.append("multi_start")
+            type.append("multi_start")
+            pred = model.predict(X_te)
+            acc.append(temp_sc)
         else:
             model.fit(X_tr, y[tr], n_iter=1000, batch_size=264, momentum=0.8, verbose=300, sampling= "margin", weight_init=start, tao=tao)
             pred = model.predict(X_te)
-            print(pred)
+
             f1 = f1_score(y_te, pred)
             f1_scores.append(f1)
-            f1_type.append(f"{start}")
+            type.append(f"{start}")
+            acc.append(accuracy(y_te, pred))
 
     reference_model = LinearSVC()
     reference_model.fit(X_tr, y_tr)
     pred = reference_model.predict(X_te)
     f1_scores.append(f1_score(y_te, pred))
+    acc.append(accuracy(y_te, pred))
     start_type.append("reference_model")
-    print(f1_scores, start_type)
-"""
+    print(f1_scores, acc,start_type)
+
 
 
