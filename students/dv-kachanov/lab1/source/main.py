@@ -174,29 +174,13 @@ def l2_regularization(w: Tensor, weight_decay: float) -> float:
 # реализовать скорейший градиентный спуск;
 
 def find_best_step(X, y, w, gradient, weight_decay):
-    steps = np.logspace(-5, 0, 20)
+    norm_squared = np.sum(X * X)
 
-    original_weights = w.data.copy()
+    if norm_squared == 0:
+        return 0.0
 
-    best_step = steps[0]
-    best_loss = float("inf")
-
-    for step in steps:
-        w.data = original_weights - step * gradient
-
-        loss = quadratic_loss(Tensor(X), Tensor(y), w)
-
-        regularization = l2_regularization(w, weight_decay)
-        loss_value = loss.data.item() + regularization
-
-        if loss_value < best_loss:
-            best_loss = loss_value
-            best_step = step
-
-    w.data = original_weights
-
+    best_step = 1.0 / norm_squared
     return best_step
-
 
 def train_steepest(X, y, w, epochs=100, weight_decay=0.001, lambda_=0.01):
     quality = None
