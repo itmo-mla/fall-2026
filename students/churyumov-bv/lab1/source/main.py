@@ -173,7 +173,6 @@ def init_Q(w: np.ndarray, X: np.ndarray, y: np.ndarray) -> float:
 def update_Q(Q_prev: float, loss_i: float, lam: float) -> float:
     return lam * loss_i + (1 - lam) * Q_prev
 
-# 7. реализовать скорейший градиентный спуск;
 def full_Q(w, X, y, l2):
     M = margin(w, X, y)
     return loss(M).mean() + 0.5 * l2 * np.sum(w[1:] ** 2)
@@ -217,7 +216,7 @@ def sgd_momentum(X, y, w0, n_iter=4000, eta=0.05, gamma=0.9, l2=0.01,
 
     return w, np.array(Q_history)
 
-
+# 7. реализовать скорейший градиентный спуск;
 def backtracking_line_search(f, f0, g, eta0=5.0, shrink=0.5, c1=1e-4, max_steps=50):
     eta = eta0
     grad_norm_sq = g @ g
@@ -227,7 +226,7 @@ def backtracking_line_search(f, f0, g, eta0=5.0, shrink=0.5, c1=1e-4, max_steps=
         eta *= shrink
     return eta
 
-
+# 7. реализовать скорейший градиентный спуск;
 def steepest_descent(X, y, w0, n_iter=200, l2=0.01, eta_max=5.0):
     w = w0.copy()
     Q_history = [full_Q(w, X, y, l2)]
