@@ -16,7 +16,9 @@ def download_dataset() -> pd.DataFrame:
 
 
 def preprocess_data(df):
-    X = df.drop("quality", axis=1).to_numpy()
+    X = df.drop(
+        columns=[c for c in ("quality", "Id") if c in df.columns], axis=1
+    ).to_numpy()
     Y = df["quality"].to_numpy()
     return X, one_hot_encode(Y)
 
