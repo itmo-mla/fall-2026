@@ -1,15 +1,12 @@
 import numpy as np
 
+from .AbstractKNN import KNN
 
-class SimpleKNN:
+
+class SimpleKNN(KNN):
     def __init__(self, k):
-        self.X = None
-        self.y = None
+        super().__init__()
         self.k = k
-
-    def train(self, X, y):
-        self.X = X
-        self.y = y
 
     def w(self, i):
         return np.int32(i < self.k)
@@ -25,7 +22,3 @@ class SimpleKNN:
 
         pre_class_sum = np.sum(self.y[idx_sort] * weights, axis=0)
         return pre_class_sum / pre_class_sum.sum()
-
-    def predict_class(self, x):
-        class_distrib = self.predict_prob(x)
-        return np.argmax(class_distrib)
