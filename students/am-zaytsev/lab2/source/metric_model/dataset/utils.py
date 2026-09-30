@@ -5,27 +5,29 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
 def download_dataset() -> pd.DataFrame:
-    # Download latest version
-    data_path = kagglehub.dataset_download(
-        "ritesaluja/bank-note-authentication-uci-data"
-    )
-    df = pd.read_csv(os.path.join(data_path, "BankNote_Authentication.csv"))
+    data_path = kagglehub.dataset_download("yasserh/wine-quality-dataset")
+
+    df = pd.read_csv(os.path.join(data_path, "WineQT.csv"))
+    df["quality"] = df["quality"].clip(5, 7)
     return df
 
 
-def binary_one_hot_encode(row: np.array):
-    row = row[:, np.newaxis]
-    return np.hstack([1 - row, row])
+def one_hot_encode(row: np.array):
+    row_2d = row.reshape(-1, 1)
+
+    encoder = OneHotEncoder(sparse_output=False)
+    one_hot = encoder.fit_transform(row_2d)
+    return one_hot
 
 
 def preprocess_data(df):
-    X = df.drop("class", axis=1).to_numpy()
-    Y = df["class"].to_numpy()
-    return X, binary_one_hot_encode(Y)
+    X = df.drop("quality", axis=1).to_numpy()
+    Y = df["quality"].to_numpy()
+    return X, one_hot_encode(Y)
 
 
 def remove_row(df, row_i):
@@ -33,6 +35,7 @@ def remove_row(df, row_i):
     mask[row_i] = 0
     mask = mask == 1
     return df[mask]
+
 
 def draw_data(df: pd.DataFrame, target_name: str):
     # Features and labels
@@ -56,7 +59,7 @@ def draw_data(df: pd.DataFrame, target_name: str):
 
     # Plot
     plt.figure(figsize=(9, 7))
-    for label in sorted(df["class"].unique()):
+    for label in sorted(df[target_name].unique()):
         mask = y == label
         plt.scatter(
             X_tsne[mask, 0], X_tsne[mask, 1], s=15, alpha=0.7, label=f"Class {label}"
