@@ -3,6 +3,7 @@ import os
 import kagglehub
 import pandas as pd
 
+from .utils import draw_data_by_target
 from .utils import one_hot_encode
 
 
@@ -18,3 +19,7 @@ def preprocess_data(df):
     X = df.drop("quality", axis=1).to_numpy()
     Y = df["quality"].to_numpy()
     return X, one_hot_encode(Y)
+
+
+def draw_data(df):
+    return draw_data_by_target(df, "quality")

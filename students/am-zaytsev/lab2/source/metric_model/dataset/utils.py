@@ -23,7 +23,7 @@ def remove_row(df, row_i):
     return df[mask]
 
 
-def draw_data(df: pd.DataFrame, target_name: str):
+def draw_data_by_target(df: pd.DataFrame, target_name: str):
     # Features and labels
     features = [i for i in list(df) if i != target_name]
     X = df[features].values

@@ -1,3 +1,3 @@
-from .utils import draw_data, remove_row
+from .utils import draw_data_by_target, remove_row
 
-__all__ = ["draw_data", "remove_row"]
+__all__ = ["draw_data_by_target", "remove_row"]
