@@ -7,7 +7,9 @@ authors = [
     { name = "Zaytsev Artem", email = "zajtsev.artjom@samlit.net" }
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "pandas>=2.3.3",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.30,<0.10.0"]
@@ -15,6 +17,12 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-root = "source"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.3.0",
+    "kagglehub>=1.0.2",
+]
 
 [project.scripts]
 main = "metric_model.main:main"
