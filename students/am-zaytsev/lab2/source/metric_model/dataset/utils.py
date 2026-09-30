@@ -1,6 +1,7 @@
 import os
 
 import kagglehub
+import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
@@ -15,6 +16,23 @@ def download_dataset() -> pd.DataFrame:
     df = pd.read_csv(os.path.join(data_path, "BankNote_Authentication.csv"))
     return df
 
+
+def binary_one_hot_encode(row: np.array):
+    row = row[:, np.newaxis]
+    return np.hstack([1 - row, row])
+
+
+def preprocess_data(df):
+    X = df.drop("class", axis=1).to_numpy()
+    Y = df["class"].to_numpy()
+    return X, binary_one_hot_encode(Y)
+
+
+def remove_row(df, row_i):
+    mask = np.ones(df.shape[0])
+    mask[row_i] = 0
+    mask = mask == 1
+    return df[mask]
 
 def draw_data(df: pd.DataFrame, target_name: str):
     # Features and labels
