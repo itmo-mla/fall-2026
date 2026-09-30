@@ -18,7 +18,7 @@ def loo(X, y, model_class, model_params_list, progress_bar=False):
 
         error_cnt = 0
 
-        for idx in range(1, X.shape[0]):
+        for idx in range(X.shape[0]):
             x_part = remove_row(X, idx)
             y_part = remove_row(y, idx)
 
