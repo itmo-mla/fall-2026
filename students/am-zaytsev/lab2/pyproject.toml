@@ -8,7 +8,9 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
+    "matplotlib>=3.10.9",
     "pandas>=2.3.3",
+    "scikit-learn>=1.7.2",
 ]
 
 [build-system]
@@ -22,6 +24,7 @@ module-root = "source"
 dev = [
     "ipykernel>=7.3.0",
     "kagglehub>=1.0.2",
+    "plotly>=7.1.0",
 ]
 
 [project.scripts]
