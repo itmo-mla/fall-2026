@@ -1,0 +1,20 @@
+[project]
+name = "metric_model"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Zaytsev Artem", email = "zajtsev.artjom@samlit.net" }
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.9.30,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = "source"
+
+[project.scripts]
+main = "metric_model.main:main"
