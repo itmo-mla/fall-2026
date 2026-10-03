@@ -31,3 +31,4 @@ dev = [
 
 [project.scripts]
 main = "metric_model.main:main"
+draw_pm = "metric_model.train.ccv:draw_pm"

@@ -28,7 +28,7 @@ def _color(v):
     return colors[hash(v) % len(colors)]
 
 
-if __name__ == "__main__":
+def draw_pm():
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
