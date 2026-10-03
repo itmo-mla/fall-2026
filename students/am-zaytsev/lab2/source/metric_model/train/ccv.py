@@ -168,5 +168,19 @@ if __name__ == "__main__":
 
     p_old = compact_profile(x, y, 1)
 
-    for i in range(x.shape[0]):
-        print(i, remove_row_set_compact_profile(x, y, i, p_old))
+    removed_set = set()
+    print(p_old)
+
+    while True:
+        min_llo = None
+        remove_idx = -1
+        for i in range(x.shape[0]):
+            llo = remove_row_set_compact_profile(x, y, i, p_old, removed_set)
+            if min_llo is None:
+                min_llo = llo + 1
+
+            if min_llo > llo:
+                min_llo = llo
+                remove_idx = i
+        print(f"{remove_idx=}", min_llo)
+        removed_set = removed_set.union({remove_idx})
