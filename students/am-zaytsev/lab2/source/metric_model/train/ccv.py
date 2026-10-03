@@ -46,6 +46,10 @@ def ccv(X, y, k, l):
     return ccv_sum
 
 
+def loo(X, y, k):
+    return ccv(X, y, k, 1)
+
+
 def _color(v):
     colors = ["red", "green", "blue", "brown"]
     return colors[hash(v) % len(colors)]
