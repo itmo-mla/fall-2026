@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
-from metric_model.dataset.utils import remove_row
 from metric_model.train.ccv import (
-    compact_profile,
+    closest_idx,
+    get_2nn_idx_list,
     get_m_closest_class,
     get_sorted_m,
-    remove_row_compact_profile,
+    remove_row_set_compact_profile,
 )
 
 
@@ -39,15 +39,129 @@ def test_get_m_closest_class():
             assert true == pred
 
 
-def test_dp_dx():
-    n = 100
-    x = np.random.random([n, 5])
-    y = np.int32(np.random.uniform(-10, 10, [n, 1]) > 0)
+# def test_dp_dx():
+#     n = 100
+#     x = np.random.random([n, 5])
+#     y = np.int32(np.random.uniform(-10, 10, [n, 1]) > 0)
 
-    p_old = compact_profile(x, y, 1)
+#     p_old = compact_profile(x, y, 1)
 
-    for del_i in range(x.shape[0]):
-        p_new_pred = remove_row_compact_profile(x, y, del_i, p_old)
+#     for del_i in range(x.shape[0]):
+#         p_new_pred = remove_row_compact_profile(x, y, del_i, p_old)
 
-        p_new_true = compact_profile(remove_row(x, del_i), remove_row(y, del_i), 1)
-        assert (p_new_pred - p_new_true) / p_new_true < 0.001
+#         p_new_true = compact_profile(remove_row(x, del_i), remove_row(y, del_i), 1)
+#         assert (p_new_pred - p_new_true) / p_new_true < 0.001
+
+
+
+# ----------------------------------------------------------------------
+# Tests for closest_idx
+# ----------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "x, xi, n, removed_idx_set, expected",
+    [
+        (
+            np.array([[0], [1], [2], [3], [4]]),
+            np.array([2]),
+            3,
+            set(),
+            [2, 1, 3],
+        ),
+        (
+            np.array([[0], [1], [2], [3], [4]]),
+            np.array([2]),
+            2,
+            {2},
+            [1, 3],
+        ),
+        (
+            np.array([[0], [1], [2], [3], [4]]),
+            np.array([2]),
+            4,
+            {0, 4},
+            [2, 1, 3],
+        ),
+    ],
+)
+def test_closest_idx(x, xi, n, removed_idx_set, expected):
+    result = closest_idx(x, xi, n, removed_idx_set)
+    # convert numpy ints to Python ints for a clean comparison
+    result = [int(i) for i in result]
+    assert result == expected
+
+
+# ----------------------------------------------------------------------
+# Tests for get_2nn_idx_list
+# ----------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "x, removed_idx_set, expected_k1, expected_k2",
+    [
+        (
+            np.array([[0], [2], [5], [9], [14]]),
+            set(),
+            [1, 0, 1, 2, 3],
+            [2, 2, 3, 4, 2],
+        ),
+        (
+            np.array([[0], [2], [5], [9], [14]]),
+            {1},
+            [2, 0, 3, 2, 3],
+            [3, 2, 0, 4, 2],
+        ),
+        (
+            np.array([[0], [2], [5], [9], [14]]),
+            {0, 4},
+            [1, 2, 1, 2, 3],
+            [2, 3, 3, 1, 2],
+        ),
+    ],
+)
+def test_get_2nn_idx_list(x, removed_idx_set, expected_k1, expected_k2):
+    k1, k2 = get_2nn_idx_list(x, removed_idx_set)
+    assert k1 == expected_k1
+    assert k2 == expected_k2
+
+
+# ----------------------------------------------------------------------
+# Tests for remove_row_set_compact_profile
+# ----------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "x, y, row_i, old_p, removed_idx_set, expected",
+    [
+        (
+            np.array([[0], [2], [5], [9], [14]]),
+            np.array([0, 0, 1, 1, 0]),
+            2,
+            0.4,
+            set(),
+            0.6,
+        ),
+        (
+            np.array([[0], [2], [5], [9], [14]]),
+            np.array([0, 0, 1, 1, 0]),
+            2,
+            0.4,
+            {1},
+            0.6,
+        ),
+        (
+            np.array([[0], [2], [5], [9], [14]]),
+            np.array([0, 0, 1, 1, 0]),
+            0,
+            0.4,
+            set(),
+            0.6,
+        ),
+        (
+            np.array([[0], [2], [5], [9], [14]]),
+            np.array([0, 0, 1, 1, 0]),
+            3,
+            0.4,
+            set(),
+            0.4,
+        ),
+    ],
+)
+def test_remove_row_set_compact_profile(x, y, row_i, old_p, removed_idx_set, expected):
+    result = remove_row_set_compact_profile(x, y, row_i, old_p, removed_idx_set)
+    assert np.isclose(result, expected)
