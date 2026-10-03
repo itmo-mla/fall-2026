@@ -112,7 +112,14 @@ def draw_pm():
     # fig.write_image("images/compact_profile_plots.jpg")
 
 
-def get_k1_k2_list(x):
+def closest_idx(x, xi, n=None):  # TODO speed up
+    if n is None:
+        n = x.shape[0] - 1
+    dist = np.linalg.norm(x - xi, axis=1)
+    return np.argsort(dist)[1 : n + 1]
+
+
+def get_2nn_idx_list(x):
     k1_idx_list = []
     k2_idx_list = []
     for i in range(x.shape[0]):
@@ -122,47 +129,36 @@ def get_k1_k2_list(x):
     return k1_idx_list, k2_idx_list
 
 
-def remove_row_compact_profile(x, y, row_i, old_compact_profile):
+def remove_row_set_compact_profile(x: np.array, y: np.array, row_i: int, old_p):
     l = x.shape[0]
-    k1_idx_list, k2_idx_list = get_k1_k2_list(x)
-    lp_new = old_compact_profile * l
 
-    lp_new = lp_new - int(y[k1_idx_list[row_i]][0] != y[row_i][0])
+    lp_new = l * old_p
 
-    for i in range(x.shape[0]):
+    k1_idx_list, k2_idx_list = get_2nn_idx_list(x)
+
+
+    for i in range(l):
         k1_idx = k1_idx_list[i]
         k2_idx = k2_idx_list[i]
 
+        if i == row_i:
+            continue
         if k1_idx != row_i:
             continue
 
-        if (y[i] == y[row_i]) and (y[i] != y[k2_idx]):
+        if (y[row_i] == y[i]) and (y[k2_idx] != y[i]):
             lp_new += 1
-        if (y[i] != y[row_i]) and (y[i] == y[k2_idx]):
+        elif (y[row_i] != y[i]) and (y[k2_idx] == y[i]):
             lp_new -= 1
-    return lp_new / (l - 1)
-
-
-def closest_idx(x, xi, n=None):
-    if n is None:
-        n = x.shape[0] - 1
-
-    dist = np.linalg.norm(x - xi, axis=1)
-    return np.argsort(dist)[1 : n + 1]
+    return lp_new / l
 
 
 if __name__ == "__main__":
     a = remove_row
-    x = np.float32([0, 1, 3, 7, 20]).reshape(-1, 1)
-    y = np.float32([0, 0, 1, 0, 0]).reshape(-1, 1)
+    x = np.float32([0, 1, 3, 7, 8]).reshape(-1, 1)
+    y = np.float32([0, 0, 1, 1, 0]).reshape(-1, 1)
 
     p_old = compact_profile(x, y, 1)
 
-    L = x.shape[0]
-
-    for del_i in range(x.shape[0]):
-        p_new_pred = remove_row_compact_profile(x, y, del_i, p_old)
-
-        p_new_true = compact_profile(remove_row(x, del_i), remove_row(y, del_i), 1)
-        assert p_new_pred == p_new_true
-        print(del_i, p_new_true)
+    for i in range(x.shape[0]):
+        
