@@ -2,6 +2,8 @@ from math import comb
 
 import numpy as np
 
+from metric_model.dataset.utils import remove_row
+
 
 def get_sorted_m(arr, m):
     return np.quantile(arr, m / (arr.shape[0] - 1), method="nearest")
@@ -21,7 +23,10 @@ def compact_profile(X: np.array, y: np.array, m: int):
     for i in range(X.shape[0]):
         x = X[i]
         y_m = get_m_closest_class(x, X, y, m)
-        profile_list.append(int(y_m != y[i, 0]))
+        p = int(y_m != y[i, 0])
+        # if p == 1:
+        #     print(X[i])
+        profile_list.append(p)
     return np.mean(profile_list)
 
 
@@ -105,3 +110,59 @@ def draw_pm():
 
     fig.show(renderer="browser")
     # fig.write_image("images/compact_profile_plots.jpg")
+
+
+def get_k1_k2_list(x):
+    k1_idx_list = []
+    k2_idx_list = []
+    for i in range(x.shape[0]):
+        k1_idx, k2_idx = closest_idx(x, x[i], 2)
+        k1_idx_list.append(int(k1_idx))
+        k2_idx_list.append(int(k2_idx))
+    return k1_idx_list, k2_idx_list
+
+
+def remove_row_compact_profile(x, y, row_i, old_compact_profile):
+    l = x.shape[0]
+    k1_idx_list, k2_idx_list = get_k1_k2_list(x)
+    lp_new = old_compact_profile * l
+
+    lp_new = lp_new - int(y[k1_idx_list[row_i]][0] != y[row_i][0])
+
+    for i in range(x.shape[0]):
+        k1_idx = k1_idx_list[i]
+        k2_idx = k2_idx_list[i]
+
+        if k1_idx != row_i:
+            continue
+
+        if (y[i] == y[row_i]) and (y[i] != y[k2_idx]):
+            lp_new += 1
+        if (y[i] != y[row_i]) and (y[i] == y[k2_idx]):
+            lp_new -= 1
+    return lp_new / (l - 1)
+
+
+def closest_idx(x, xi, n=None):
+    if n is None:
+        n = x.shape[0] - 1
+
+    dist = np.linalg.norm(x - xi, axis=1)
+    return np.argsort(dist)[1 : n + 1]
+
+
+if __name__ == "__main__":
+    a = remove_row
+    x = np.float32([0, 1, 3, 7, 20]).reshape(-1, 1)
+    y = np.float32([0, 0, 1, 0, 0]).reshape(-1, 1)
+
+    p_old = compact_profile(x, y, 1)
+
+    L = x.shape[0]
+
+    for del_i in range(x.shape[0]):
+        p_new_pred = remove_row_compact_profile(x, y, del_i, p_old)
+
+        p_new_true = compact_profile(remove_row(x, del_i), remove_row(y, del_i), 1)
+        assert p_new_pred == p_new_true
+        print(del_i, p_new_true)
