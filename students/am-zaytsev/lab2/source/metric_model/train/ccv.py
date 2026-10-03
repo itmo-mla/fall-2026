@@ -112,30 +112,38 @@ def draw_pm():
     # fig.write_image("images/compact_profile_plots.jpg")
 
 
-def closest_idx(x, xi, n=None):  # TODO speed up
+def closest_idx(x, xi, n=None, removed_idx_set=None):  # TODO speed up
     if n is None:
         n = x.shape[0] - 1
+    if removed_idx_set is None:
+        removed_idx_set = set()
     dist = np.linalg.norm(x - xi, axis=1)
-    return np.argsort(dist)[1 : n + 1]
+    return [i for i in np.argsort(dist) if i not in removed_idx_set][:n]
 
 
-def get_2nn_idx_list(x):
+def get_2nn_idx_list(x, removed_idx_set: set = None):
+    if removed_idx_set is None:
+        removed_idx_set = set()
     k1_idx_list = []
     k2_idx_list = []
     for i in range(x.shape[0]):
-        k1_idx, k2_idx = closest_idx(x, x[i], 2)
+        k1_idx, k2_idx = closest_idx(x, x[i], 2, removed_idx_set.union({i}))
         k1_idx_list.append(int(k1_idx))
         k2_idx_list.append(int(k2_idx))
     return k1_idx_list, k2_idx_list
 
 
-def remove_row_set_compact_profile(x: np.array, y: np.array, row_i: int, old_p):
+def remove_row_set_compact_profile(
+    x: np.array, y: np.array, row_i: int, old_p, removed_idx_set: set = None
+):
+    if removed_idx_set is None:
+        removed_idx_set = set()
+
     l = x.shape[0]
 
     lp_new = l * old_p
 
-    k1_idx_list, k2_idx_list = get_2nn_idx_list(x)
-
+    k1_idx_list, k2_idx_list = get_2nn_idx_list(x, removed_idx_set)
 
     for i in range(l):
         k1_idx = k1_idx_list[i]
@@ -161,4 +169,4 @@ if __name__ == "__main__":
     p_old = compact_profile(x, y, 1)
 
     for i in range(x.shape[0]):
-        
+        print(i, remove_row_set_compact_profile(x, y, i, p_old))
