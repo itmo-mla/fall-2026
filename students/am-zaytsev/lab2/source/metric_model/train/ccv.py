@@ -1,3 +1,5 @@
+from math import comb
+
 import numpy as np
 
 
@@ -21,6 +23,27 @@ def compact_profile(X: np.array, y: np.array, m: int):
         y_m = get_m_closest_class(x, X, y, m)
         profile_list.append(int(y_m != y[i, 0]))
     return np.mean(profile_list)
+
+
+def ccv(X, y, k, l):
+    """
+    CCV(X^L) = sum_{m=1}^{k} Pi(m) * C(L-1, l-1-m) / C(L, l)
+    l : ell  (control / test set size)
+    k : number of terms in the sum
+    """
+    L = X.shape[0]
+    denom = comb(L, l)
+
+    ccv_sum = 0.0
+    for m in range(1, k + 1):
+        r = l - 1 - m
+        if 0 <= r <= L - 1:
+            num = comb(L - 1, r)
+        else:
+            num = 0
+        ccv_sum += compact_profile(X, y, m) * num / denom
+
+    return ccv_sum
 
 
 def _color(v):
