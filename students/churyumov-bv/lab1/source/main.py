@@ -17,15 +17,12 @@
 
 """
 
-import io
-import json
 import os
-import zipfile
 import numpy as np
 import pandas as pd
-import requests
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
+from sklearn.datasets import fetch_openml
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, auc
 
@@ -35,53 +32,21 @@ rng = np.random.default_rng(RANDOM_STATE)
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-KAGGLE_DATASET = "uciml/pima-indians-diabetes-database"
-KAGGLE_FILE = "diabetes.csv"
-DATA_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-DATA_PATH = os.path.join(DATA_DIR, KAGGLE_FILE)
-
-
-def _kaggle_auth():
-    user = os.environ.get("KAGGLE_USERNAME")
-    key = os.environ.get("KAGGLE_KEY")
-    if user and key:
-        return user, key
-    with open(os.path.expanduser("~/.kaggle/kaggle.json")) as f:
-        creds = json.load(f)
-    return creds["username"], creds["key"]
-
-
-def download_dataset():
-    url = f"https://www.kaggle.com/api/v1/datasets/download/{KAGGLE_DATASET}"
-    resp = requests.get(url, auth=_kaggle_auth())
-    resp.raise_for_status()
-    with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
-        zf.extract(KAGGLE_FILE, DATA_DIR)
-
-
 # выбрать датасет для классификации, например на [kaggle]
 def load_data() -> pd.DataFrame:
-    if not os.path.exists(DATA_PATH):
-        download_dataset()
-
-    df = pd.read_csv(DATA_PATH)
-    df.columns = [c.strip().lower() for c in df.columns]
-    return df
+    return fetch_openml(data_id=37, as_frame=True, parser="auto", n_retries=5).frame
 
 
 def prepare_data(df: pd.DataFrame, test_size: float = 0.3):
     df = df.copy()
-
-    zeros = ["glucose", "bloodpressure", "skinthickness", "insulin", "bmi"]
+    zeros = ["plas", "pres", "skin", "insu", "mass"]
     for col in zeros:
         df[col] = df[col].replace(0, np.nan)
         df[col] = df[col].fillna(df[col].median())
 
-    feature_cols = ["pregnancies", "glucose", "bloodpressure", "skinthickness",
-                     "insulin", "bmi", "diabetespedigreefunction", "age"]
+    feature_cols = ["preg", "plas", "pres", "skin", "insu", "mass", "pedi", "age"]
     X = df[feature_cols].to_numpy(dtype=float)
-    y = df["outcome"].to_numpy(dtype=float)
-    y = np.where(y > 0, 1.0, -1.0)  # {0,1} -> {-1,+1}
+    y = np.where(df["class"] == "tested_positive", 1.0, -1.0)
 
     mu, sigma = X.mean(axis=0), X.std(axis=0)
     sigma[sigma == 0] = 1.0
@@ -148,19 +113,19 @@ def _stable_sigmoid(z: np.ndarray) -> np.ndarray:
 
 
 def loss(M: np.ndarray) -> np.ndarray:
-    return np.log1p(np.exp(-np.abs(M))) + np.maximum(-M, 0)
+    return (np.log1p(np.exp(-np.abs(M))) + np.maximum(-M, 0)) / np.log(2)
 
 
 def loss_derivative(M: np.ndarray) -> np.ndarray:
-    return -_stable_sigmoid(-M)
+    return -_stable_sigmoid(-M) / np.log(2)
 
 
 def gradient(w: np.ndarray, X: np.ndarray, y: np.ndarray, l2: float = 0.0) -> np.ndarray:
     M = margin(w, X, y)
-    dL_dM = loss_derivative(M)          # (n,)
-    grad_per_obj = X * (dL_dM * y)[:, None]  # (n, d), dM/dw = y_i * x_i
+    dL_dM = loss_derivative(M)
+    grad_per_obj = X * (dL_dM * y)[:, None]
     grad = grad_per_obj.mean(axis=0)
-    grad[1:] += l2 * w[1:]              # bias (w[0]) не регуляризуем
+    grad[1:] += l2 * w[1:]
     return grad
 
 # 4. реализовать рекуррентную оценку функционала качества;
@@ -188,7 +153,7 @@ def margin_based_sampling_probs(w: np.ndarray, X: np.ndarray, y: np.ndarray,
 def sgd_momentum(X, y, w0, n_iter=4000, eta=0.05, gamma=0.9, l2=0.01,
                   lam_Q=0.01, sampling="uniform"):
     w = w0.copy()
-    v = np.zeros_like(w)  # "инерция" (momentum)
+    v = np.zeros_like(w)
     Q = init_Q(w, X, y)
     Q_history = [Q]
     n = X.shape[0]
@@ -197,7 +162,6 @@ def sgd_momentum(X, y, w0, n_iter=4000, eta=0.05, gamma=0.9, l2=0.01,
         if sampling == "uniform":
             i = rng.integers(0, n)
         elif sampling == "margin_based":
-            # пересчитывать веса на каждом шаге дорого, обновляем раз в K шагов
             if t % 50 == 0:
                 probs = margin_based_sampling_probs(w, X, y)
             i = rng.choice(n, p=probs)
@@ -246,7 +210,7 @@ def steepest_descent(X, y, w0, n_iter=200, l2=0.01, eta_max=5.0):
 # 9.1 обучить с инициализацией весов через корреляцию;
 def correlation_init(X, y):
     w = np.zeros(X.shape[1])
-    for j in range(1, X.shape[1]):  # пропускаем bias-столбец (j=0)
+    for j in range(1, X.shape[1]):
         xj = X[:, j]
         denom = xj @ xj
         w[j] = (xj @ y) / denom if denom > 0 else 0.0
@@ -255,8 +219,6 @@ def correlation_init(X, y):
 
 # 9.2 обучить со случайной инициализацией весов через мультистарт;
 def multistart(X, y, n_starts, train_fn, **train_kwargs):
-    """Запускаем обучение n_starts раз со случайными начальными весами,
-    выбираем лучший результат по итоговому Q на обучающей выборке."""
     best_w, best_Q, best_hist = None, np.inf, None
     d = X.shape[1]
     for s in range(n_starts):
@@ -327,7 +289,7 @@ def plot_roc_curves(models: dict, X: np.ndarray, y: np.ndarray, title: str, path
 # 11. сравнить лучшую реализацию с эталонной;
 def reference_model(X_train, y_train, X_test, y_test, l2):
     from sklearn.linear_model import SGDClassifier
-    clf = SGDClassifier(loss="log_loss", penalty="l2", alpha=l2,
+    clf = SGDClassifier(loss="log_loss", penalty="l2", alpha=l2 * np.log(2),
                          max_iter=2000, random_state=RANDOM_STATE)
     clf.fit(X_train[:, 1:], y_train)
     y_pred = clf.predict(X_test[:, 1:])
@@ -353,7 +315,7 @@ if __name__ == "__main__":
     w_rand = rng.normal(0, 0.1, size=d)
     plot_margins(
         margin(w_rand, X_train, y_train), 
-        "Отступы со случайными весами (до обучения)",
+        "Отступы со случайными весами до обучения",
         os.path.join(OUTPUT_DIR, "margins_before.png")
     )
 

@@ -1,37 +1,35 @@
 ## 1. Датасет
 
+Pima Indians Diabetes (768 объектов, 8 числовых признаков, 2 класса). Загружается из OpenML (`data_id=37`) через `sklearn.datasets.fetch_openml`, без Kaggle API; sklearn кэширует датасет локально. Колонки используются под именами OpenML: `preg`, `plas`, `pres`, `skin`, `insu`, `mass`, `pedi`, `age`, метка — `class`.
+
+В признаках `plas`, `pres`, `skin`, `insu`, `mass` нулевое значение означает пропуск: оно заменяется медианой по столбцу. Признаки стандартизуются, метки переводятся в {-1, +1}, выборка делится на обучающую и тестовую (70/30, без перемешивания), к матрицам добавляется столбец смещения.
+
 ```python
-KAGGLE_DATASET = "uciml/pima-indians-diabetes-database"
-KAGGLE_FILE = "diabetes.csv"
-DATA_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-DATA_PATH = os.path.join(DATA_DIR, KAGGLE_FILE)
-
-
-def _kaggle_auth():
-    user = os.environ.get("KAGGLE_USERNAME")
-    key = os.environ.get("KAGGLE_KEY")
-    if user and key:
-        return user, key
-    with open(os.path.expanduser("~/.kaggle/kaggle.json")) as f:
-        creds = json.load(f)
-    return creds["username"], creds["key"]
-
-
-def download_dataset():
-    url = f"https://www.kaggle.com/api/v1/datasets/download/{KAGGLE_DATASET}"
-    resp = requests.get(url, auth=_kaggle_auth())
-    resp.raise_for_status()
-    with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
-        zf.extract(KAGGLE_FILE, DATA_DIR)
-
-
 def load_data() -> pd.DataFrame:
-    if not os.path.exists(DATA_PATH):
-        download_dataset()
+    return fetch_openml(data_id=37, as_frame=True, parser="auto", n_retries=5).frame
 
-    df = pd.read_csv(DATA_PATH)
-    df.columns = [c.strip().lower() for c in df.columns]
-    return df
+def prepare_data(df: pd.DataFrame, test_size: float = 0.3):
+    df = df.copy()
+    zeros = ["plas", "pres", "skin", "insu", "mass"]
+    for col in zeros:
+        df[col] = df[col].replace(0, np.nan)
+        df[col] = df[col].fillna(df[col].median())
+
+    feature_cols = ["preg", "plas", "pres", "skin", "insu", "mass", "pedi", "age"]
+    X = df[feature_cols].to_numpy(dtype=float)
+    y = np.where(df["class"] == "tested_positive", 1.0, -1.0)
+
+    mu, sigma = X.mean(axis=0), X.std(axis=0)
+    sigma[sigma == 0] = 1.0
+    X = (X - mu) / sigma
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, shuffle=False
+    )
+
+    def add_bias(X):
+        return np.hstack([np.ones((X.shape[0], 1)), X])
+
+    return add_bias(X_train), y_train, add_bias(X_test), y_test, feature_cols
 ```
 
 ## 2. Отступ объекта
@@ -82,6 +80,8 @@ def plot_margins(M: np.ndarray, title: str, path: str):
 
 ## 3. Градиент функции потерь
 
+Функция потерь — логистическая, нормированная на ln 2: L(M) = log₂(1 + e^(−M)). Она мажорирует пороговую функцию потерь [M < 0].
+
 ```python
 def _stable_sigmoid(z: np.ndarray) -> np.ndarray:
     out = np.empty_like(z)
@@ -91,14 +91,11 @@ def _stable_sigmoid(z: np.ndarray) -> np.ndarray:
     out[~pos] = ez / (1.0 + ez)
     return out
 
-
 def loss(M: np.ndarray) -> np.ndarray:
-    return np.log1p(np.exp(-np.abs(M))) + np.maximum(-M, 0)
-
+    return (np.log1p(np.exp(-np.abs(M))) + np.maximum(-M, 0)) / np.log(2)
 
 def loss_derivative(M: np.ndarray) -> np.ndarray:
-    return -_stable_sigmoid(-M)
-
+    return -_stable_sigmoid(-M) / np.log(2)
 
 def gradient(w: np.ndarray, X: np.ndarray, y: np.ndarray, l2: float = 0.0) -> np.ndarray:
     M = margin(w, X, y)
@@ -113,13 +110,12 @@ def gradient(w: np.ndarray, X: np.ndarray, y: np.ndarray, l2: float = 0.0) -> np
 
 ```python
 def init_Q(w: np.ndarray, X: np.ndarray, y: np.ndarray) -> float:
+
     M = margin(w, X, y)
     return float(loss(M).mean())
 
-
 def update_Q(Q_prev: float, loss_i: float, lam: float) -> float:
     return lam * loss_i + (1 - lam) * Q_prev
-
 
 def full_Q(w, X, y, l2):
     M = margin(w, X, y)
@@ -162,6 +158,8 @@ def sgd_momentum(X, y, w0, n_iter=4000, eta=0.05, gamma=0.9, l2=0.01,
 
 ## 6. L2-регуляризация
 
+Смещение `w[0]` не регуляризуется.
+
 ```python
 grad[1:] += l2 * w[1:]
 ```
@@ -182,7 +180,6 @@ def backtracking_line_search(f, f0, g, eta0=5.0, shrink=0.5, c1=1e-4, max_steps=
         eta *= shrink
     return eta
 
-
 def steepest_descent(X, y, w0, n_iter=200, l2=0.01, eta_max=5.0):
     w = w0.copy()
     Q_history = [full_Q(w, X, y, l2)]
@@ -198,6 +195,14 @@ def steepest_descent(X, y, w0, n_iter=200, l2=0.01, eta_max=5.0):
         Q_history.append(full_Q(w, X, y, l2))
     return w, np.array(Q_history)
 ```
+
+```python
+w_steepest, hist_steep = steepest_descent(X_train, y_train, w0_rand, l2=l2)
+```
+
+| train | test |
+|---|---|
+| ![](output/margins_train_метод_наискорейшего_спуска.png) | ![](output/margins_test_метод_наискорейшего_спуска.png) |
 
 ## 8. Предъявление объектов по модулю отступа
 
@@ -268,13 +273,6 @@ w_margin_based, hist_mb = sgd_momentum(X_train, y_train, w0_rand, l2=l2, samplin
 
 ### Кривые обучения
 
-```python
-plt.plot(hist_corr, label="инициализация весов через корреляцию")
-plt.plot(hist_mb, label="со случайным предъявлением и с п.8")
-plt.plot(hist_steep, label="метод наискорейшего спуска")
-plt.title("Кривые обучения")
-```
-
 ![](output/convergence.png)
 
 ## 10. Оценка качества классификации
@@ -298,6 +296,26 @@ def evaluate(w, X, y):
 ```
 
 ```python
+def plot_confusion_matrices(reports, path):
+    fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+    labels = ["TN", "FP", "FN", "TP"]
+
+    for ax, (name, metrics) in zip(axes.flat, reports.items()):
+        cm = metrics["confusion_matrix"]
+        ax.imshow(cm, cmap="Blues")
+        ax.set_title(name)
+        ax.set_xticks([0, 1], ["предсказан -1", "предсказан +1"])
+        ax.set_yticks([0, 1], ["факт -1", "факт +1"])
+        for row in range(2):
+            for col in range(2):
+                ax.text(col, row, f"{labels[row * 2 + col]}\n{cm[row, col]}",
+                        ha="center", va="center", color="black")
+
+    fig.suptitle("Матрицы ошибок на тестовой выборке")
+    fig.tight_layout()
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+
 def plot_roc_curves(models: dict, X: np.ndarray, y: np.ndarray, title: str, path: str):
     plt.figure(figsize=(6.5, 6))
     for name, w in models.items():
@@ -321,19 +339,23 @@ def plot_roc_curves(models: dict, X: np.ndarray, y: np.ndarray, title: str, path
 |---|---|
 | ![](output/roc_curves_train.png) | ![](output/roc_curves_test.png) |
 
+Метрики на тестовой выборке:
+
 | method | accuracy | precision | recall | f1 |
 |---|---|---|---|---|
-| инициализация весов через корреляцию | 0.7835 | 0.7042 | 0.6329 | 0.6667 |
-| случайная инициализацией весов через мультистарт | 0.8095 | 0.7465 | 0.6709 | 0.7067 |
-| со случайным предъявлением и с п.8 | 0.7143 | 0.6757 | 0.3165 | 0.4310 |
-| метод наискорейшего спуска | 0.7922 | 0.7313 | 0.6203 | 0.6712 |
+| инициализация весов через корреляцию | 0.7706 | 0.6757 | 0.6329 | 0.6536 |
+| случайная инициализацией весов через мультистарт | 0.7965 | 0.7500 | 0.6076 | 0.6713 |
+| со случайным предъявлением и с п.8 | 0.7965 | 0.7051 | 0.6962 | 0.7006 |
+| метод наискорейшего спуска | 0.7792 | 0.7258 | 0.5696 | 0.6383 |
 
 ## 11. Сравнение с эталонной реализацией
+
+Эталон — `sklearn.linear_model.SGDClassifier` с логистической потерей. Так как собственная потеря нормирована на ln 2, коэффициент регуляризации эталона взят как `l2 * ln 2`: тогда функционалы отличаются лишь общим множителем ln 2 и имеют один и тот же минимум.
 
 ```python
 def reference_model(X_train, y_train, X_test, y_test, l2):
     from sklearn.linear_model import SGDClassifier
-    clf = SGDClassifier(loss="log_loss", penalty="l2", alpha=l2,
+    clf = SGDClassifier(loss="log_loss", penalty="l2", alpha=l2 * np.log(2),
                          max_iter=2000, random_state=RANDOM_STATE)
     clf.fit(X_train[:, 1:], y_train)
     y_pred = clf.predict(X_test[:, 1:])
@@ -351,7 +373,7 @@ def reference_model(X_train, y_train, X_test, y_test, l2):
 
 | method | accuracy | precision | recall | f1 |
 |---|---|---|---|---|
-| sklearn SGDClassifier | 0.8009 | 0.7391 | 0.6456 | 0.6892 |
+| sklearn SGDClassifier | 0.7835 | 0.7302 | 0.5823 | 0.6479 |
 
 ## 12. Отчёт
 
