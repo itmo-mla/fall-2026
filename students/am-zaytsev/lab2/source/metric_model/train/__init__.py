@@ -1,4 +1,4 @@
 from .loo import loo
-from .ref_selection import ref_mask
+from .ref_selection import get_ref_mask
 
-__all__ = ["loo", "ref_mask"]
+__all__ = ["get_ref_mask", "loo"]

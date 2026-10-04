@@ -1,3 +1,5 @@
+import numpy as np
+
 from .ccv import (
     compact_profile,
     get_2nn_idx_list,
@@ -5,7 +7,7 @@ from .ccv import (
 )
 
 
-def ref_mask(x, y):
+def get_ref_mask(x, y):
     p_old = compact_profile(x, y, 1)
 
     removed_set = set()
@@ -29,4 +31,4 @@ def ref_mask(x, y):
         removed_set |= {remove_idx}
         p_old = min_loo
 
-    return [i for i in range(x.shape[0]) if i not in removed_set]
+    return np.array([i not in removed_set for i in range(x.shape[0])])
