@@ -56,7 +56,10 @@ def main():
         model_params_list=list(product(h_list, weights_values)),
         progress_bar=True,
     )
-
+    (best_k, best_kernel), best_loo = min(full_res, key=lambda x: x[1])
+    print(
+        f"skit-learn best params: k: {best_k}, kernel: {best_kernel}. LOO = {round(best_loo, 2)}"
+    )
     fig = draw_loo_res(full_res, {best_kernel} | set(weights_values))
     # fig.suptitle('Loss/k plot')
     fig.savefig("./images/compare_sklearn")
