@@ -14,6 +14,7 @@ def main():
     df = dataset_module.download_dataset()
 
     dataset_module.draw_data(df)
+    plt.savefig("./images/dataset_plot.png", dpi=300, bbox_inches="tight")
 
     # Preprocess data
     X, y = dataset_module.preprocess_data(df)
@@ -78,5 +79,6 @@ def main():
     print("   -loo:", round(best_loo_ref, 4))
 
     fig = draw_dataset(X, 1 - y, ref_mask)
+    plt.savefig("./images/ref_dataset_plot.png", dpi=300, bbox_inches="tight")
 
     plt.show()
