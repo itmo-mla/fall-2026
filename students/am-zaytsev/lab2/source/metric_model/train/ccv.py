@@ -31,23 +31,13 @@ def compact_profile(X: np.array, y: np.array, m: int):
 
 
 def ccv(X, y, k, l):
-    """
-    CCV(X^L) = sum_{m=1}^{k} Pi(m) * C(L-1, l-1-m) / C(L, l)
-    l : ell  (control / test set size)
-    k : number of terms in the sum
-    """
     L = X.shape[0]
     denom = comb(L, l)
-
+    e = L - l - 1
     ccv_sum = 0.0
     for m in range(1, k + 1):
-        r = l - 1 - m
-        if 0 <= r <= L - 1:
-            num = comb(L - 1, r)
-        else:
-            num = 0
-        ccv_sum += compact_profile(X, y, m) * num / denom
-
+        num = comb(L - 1 - m, e) if e >= 0 else 0
+        ccv_sum += compact_profile(X, y, m) * L * num / (l * denom)
     return ccv_sum
 
 
@@ -210,4 +200,3 @@ if __name__ == "__main__":
                 remove_idx = i
         print(f"{remove_idx=}", min_llo)
         removed_set |= {remove_idx}
-
