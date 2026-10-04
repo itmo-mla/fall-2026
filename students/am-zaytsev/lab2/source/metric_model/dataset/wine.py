@@ -6,6 +6,12 @@ import pandas as pd
 from .utils import draw_data_by_target
 from .utils import one_hot_encode
 
+DATASET_DESC = """
+Для выполнения лабораторной работы был выбран датасет
+[качество вина](https://www.kaggle.com/datasets/yasserh/wine-quality-dataset)\
+
+Всего 3 класса. Оценка качества вина (5–7)."""
+
 
 def download_dataset() -> pd.DataFrame:
     data_path = kagglehub.dataset_download("yasserh/wine-quality-dataset")

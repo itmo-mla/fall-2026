@@ -8,6 +8,12 @@ from .utils import draw_data_by_target, one_hot_encode
 # Column holding the class label — adjust if your CSV uses a different name
 LABEL_COL = "Species"
 
+DATASET_DESC = """
+Для выполнения лабораторной работы был выбран датасет
+[ирисы Фишера](https://www.kaggle.com/datasets/uciml/iris)\
+
+Всего 3 класса. Вид ириса."""
+
 
 def download_dataset() -> pd.DataFrame:
     # Download latest version

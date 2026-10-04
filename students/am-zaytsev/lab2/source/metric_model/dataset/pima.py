@@ -8,6 +8,12 @@ from .utils import draw_data_by_target, one_hot_encode
 # Column holding the class label — adjust if your CSV uses a different name
 LABEL_COL = "Outcome"
 
+DATASET_DESC = """
+Для выполнения лабораторной работы был выбран датасет
+[диабет индейцев пима](https://www.kaggle.com/datasets/jamaltariqcheema/pima-indians-diabetes-dataset)\
+
+Всего 2 класса. Есть ли у пациента диабет."""
+
 
 def download_dataset() -> pd.DataFrame:
     # Download latest version

@@ -5,6 +5,12 @@ import pandas as pd
 
 from .utils import draw_data_by_target, one_hot_encode
 
+DATASET_DESC = """
+Для выполнения лабораторной работы был выбран датасет
+[аутентификация банкнот](https://www.kaggle.com/datasets/ritesaluja/bank-note-authentication-uci-data)\
+
+Всего 2 класса. Подлинность банкноты."""
+
 
 def download_dataset() -> pd.DataFrame:
     # Download latest version
