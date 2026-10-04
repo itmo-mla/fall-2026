@@ -112,7 +112,20 @@ def draw_pm():
     # fig.write_image("images/compact_profile_plots.jpg")
 
 
-def closest_idx(x, xi, n=None, removed_idx_set=None):  # TODO speed up
+_ORDER_CACHE = {}
+
+
+def _pairwise_order(x):
+    key = (x.shape, x.dtype.str, x.tobytes())
+    order = _ORDER_CACHE.get(key)
+    if order is None:
+        dist_mtx = np.linalg.norm(x[:, None, :] - x[None, :, :], axis=2)
+        order = np.argsort(dist_mtx, axis=1)
+        _ORDER_CACHE[key] = order
+    return order
+
+
+def closest_idx(x, xi, n=None, removed_idx_set=None):
     if n is None:
         n = x.shape[0] - 1
     if removed_idx_set is None:
@@ -124,17 +137,28 @@ def closest_idx(x, xi, n=None, removed_idx_set=None):  # TODO speed up
 def get_2nn_idx_list(x, removed_idx_set: set = None):
     if removed_idx_set is None:
         removed_idx_set = set()
-    k1_idx_list = []
-    k2_idx_list = []
-    for i in range(x.shape[0]):
-        k1_idx, k2_idx = closest_idx(x, x[i], 2, removed_idx_set.union({i}))
-        k1_idx_list.append(int(k1_idx))
-        k2_idx_list.append(int(k2_idx))
-    return k1_idx_list, k2_idx_list
+    order = _pairwise_order(x)
+    n = x.shape[0]
+    removed = np.zeros(n, dtype=bool)
+    if removed_idx_set:
+        removed[list(removed_idx_set)] = True
+    self_mask = order != np.arange(n)[:, None]
+    removed_mask = ~removed[removed[order]]
+    valid = removed_mask & self_mask
+    neighbor_pos_mtx = np.cumsum(valid, axis=1)
+    rows = np.arange(n)
+    k1_idx_list = order[rows, np.argmax(neighbor_pos_mtx >= 1, axis=1)]
+    k2_idx_list = order[rows, np.argmax(neighbor_pos_mtx >= 2, axis=1)]
+    return k1_idx_list.tolist(), k2_idx_list.tolist()
 
 
 def remove_row_set_compact_profile(
-    x: np.array, y: np.array, row_i: int, old_p, removed_idx_set: set = None
+    x: np.array,
+    y: np.array,
+    row_i: int,
+    old_p,
+    removed_idx_set: set = None,
+    nn_idx=None,
 ):
     if removed_idx_set is None:
         removed_idx_set = set()
@@ -143,7 +167,9 @@ def remove_row_set_compact_profile(
 
     lp_new = l * old_p
 
-    k1_idx_list, k2_idx_list = get_2nn_idx_list(x, removed_idx_set)
+    if nn_idx is None:
+        nn_idx = get_2nn_idx_list(x, removed_idx_set)
+    k1_idx_list, k2_idx_list = nn_idx
 
     for i in range(l):
         k1_idx = k1_idx_list[i]
@@ -183,4 +209,4 @@ if __name__ == "__main__":
                 min_llo = llo
                 remove_idx = i
         print(f"{remove_idx=}", min_llo)
-        removed_set = removed_set.union({remove_idx})
+        removed_set |= {remove_idx}
