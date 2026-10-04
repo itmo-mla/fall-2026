@@ -143,7 +143,7 @@ def get_2nn_idx_list(x, removed_idx_set: set = None):
     if removed_idx_set:
         removed[list(removed_idx_set)] = True
     self_mask = order != np.arange(n)[:, None]
-    removed_mask = ~removed[removed[order]]
+    removed_mask = ~removed[order]
     valid = removed_mask & self_mask
     neighbor_pos_mtx = np.cumsum(valid, axis=1)
     rows = np.arange(n)
@@ -210,3 +210,4 @@ if __name__ == "__main__":
                 remove_idx = i
         print(f"{remove_idx=}", min_llo)
         removed_set |= {remove_idx}
+

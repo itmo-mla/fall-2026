@@ -1,4 +1,8 @@
-from .ccv import compact_profile, remove_row_set_compact_profile
+from .ccv import (
+    compact_profile,
+    get_2nn_idx_list,
+    remove_row_set_compact_profile,
+)
 
 
 def ref_mask(x, y):
@@ -6,18 +10,23 @@ def ref_mask(x, y):
 
     removed_set = set()
 
-    while True:
-        min_llo = None
+    while x.shape[0] - len(removed_set) > 2:
+        nn_idx = get_2nn_idx_list(x, removed_set)
+
+        min_loo = None
         remove_idx = -1
         for i in range(x.shape[0]):
-            llo = remove_row_set_compact_profile(x, y, i, p_old, removed_set)
-            if min_llo is None:
-                min_llo = llo + 1
-
-            if min_llo > llo:
-                min_llo = llo
+            if i in removed_set:
+                continue
+            loo = remove_row_set_compact_profile(x, y, i, p_old, removed_set, nn_idx)
+            if min_loo is None or loo < min_loo:
+                min_loo = loo
                 remove_idx = i
-        if min_llo > p_old:
+
+        if min_loo is None or min_loo > p_old:
             break
-        removed_set = removed_set.union({remove_idx})
+
+        removed_set |= {remove_idx}
+        p_old = min_loo
+
     return [i for i in range(x.shape[0]) if i not in removed_set]
