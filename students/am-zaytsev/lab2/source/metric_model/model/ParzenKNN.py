@@ -18,7 +18,7 @@ class ParzenKNN(KNN):
     def w(self, dist_list, h=None):
         if h is None:
             h = self.h
-        return self.kernel(dist_list / h)
+        return self.kernel(dist_list / (h + 1e-6))
 
     def predict_prob(self, x):
         dist_list = np.linalg.norm(self.X - x, axis=1)
