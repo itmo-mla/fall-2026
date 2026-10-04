@@ -1,4 +1,5 @@
 """Шаг 5: визуализация разделяющей границы в пространстве двух главных компонент (PCA)."""
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
@@ -40,6 +41,9 @@ def visualize(X_train, y_train, C=1.0, gamma_rbf=0.5, save_path=None):
     plot_boundary(axes[1, 0], X_train_2d, y_train, own_rbf.predict, 'Своя реализация — RBF-ядро')
     plot_boundary(axes[1, 1], X_train_2d, y_train, sk_rbf.predict, 'sklearn — RBF-ядро')
     plt.tight_layout()
+    
     if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path, dpi=120)
+
     plt.show()

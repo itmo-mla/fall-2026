@@ -12,10 +12,11 @@ from scipy.optimize import minimize, LinearConstraint, Bounds
 def solve_dual(K, y, C, tol=1e-5):
     """Возвращает (alpha, результат scipy). Значения alpha < tol*C обнуляются (численный шум)."""
     n = K.shape[0]
-    Q = np.outer(y, y) * K
+    Q = np.outer(y, y) * K # Q — это матрица коэффициентов оптимизационной задачи
 
     def objective(alpha):
-        return 0.5 * alpha @ Q @ alpha - alpha.sum()
+        # numpy does .transposed() stuff alpha.transposed() * Q * alpha via alpha @ Q @ alpha
+        return 0.5 * alpha @ Q @ alpha - alpha.sum() #  знак @ — это оператор матричного умножения 
 
     def grad(alpha):
         return Q @ alpha - 1.0

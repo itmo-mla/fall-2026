@@ -32,8 +32,7 @@ def main():
     print_agreement(pred_own_lin, pred_sk_lin, pred_own_rbf, pred_sk_rbf)
 
     # 5. визуализация (PCA 2D)
-    visualize(X_train, y_train, C=1.0, gamma_rbf=0.5)
-
+    visualize(X_train, y_train, C=1.0, gamma_rbf=0.5, save_path='../images/boundaries.png')
 
 if __name__ == "__main__":
     main()
