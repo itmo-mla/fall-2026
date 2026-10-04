@@ -1,4 +1,7 @@
+## Usage
 
+- Запуск `uv run main`
+- Тестирование `uv run pytest`
 ## Dataset
 
 Для выполнения лабораторной работы был выбран датасет  [донорство крови](https://www.kaggle.com/datasets/vstacknocopyright/blood-transfusion-service-center-data)
@@ -36,7 +39,7 @@
 
 Видно, что реализация scikit-learn с равномерным ядром (без учета расстояний) показывает результат лучше, чем мой текущий:
 
-- h - 4
+- h - 6
 - Kernel - uniform
 
 При таких параметрах LLO = 0.2196
