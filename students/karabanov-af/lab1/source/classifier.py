@@ -1,0 +1,96 @@
+import numpy as np
+
+
+def margins(w, X, y):
+    return y * (X @ w)
+
+
+def quadratic_loss(m):
+    return (1 - m) ** 2
+
+
+def loss_gradient(w, x, y):
+    """Gradient of (1 - M)^2 with respect to w for one object, where M = y * <w, x>."""
+    m = y * (x @ w)
+    return -2 * (1 - m) * y * x
+
+
+def bias_mask(d):
+    """Ones for the features and zero for the bias column: the free term is not regularized."""
+    mask = np.ones(d)
+    mask[-1] = 0.0
+    return mask
+
+
+def predict(w, X):
+    return np.where(X @ w >= 0, 1, -1)
+
+
+def empirical_risk(w, X, y, l2=0.0):
+    """Q(w) = mean loss over the whole sample + tau / 2 * ||w||^2."""
+    penalty = 0.5 * l2 * np.sum((bias_mask(len(w)) * w) ** 2)
+    return quadratic_loss(margins(w, X, y)).mean() + penalty
+
+
+def correlation_weights(X, y):
+    """w_j = <y, f_j> / <f_j, f_j>: every weight is set by how well the feature alone matches the label."""
+    return (y @ X) / (X ** 2).sum(axis=0)
+
+
+def random_weights(rng, d):
+    return rng.uniform(-1 / (2 * d), 1 / (2 * d), size=d)
+
+
+def epoch_order(rng, w, X, y, sampling, temperature):
+    """Random permutation, or sampling by the absolute margin: p ~ exp(-|M| / T)."""
+    n = len(y)
+    if sampling == "random":
+        return rng.permutation(n)
+    m = np.abs(margins(w, X, y))
+    p = np.exp(-(m - m.min()) / temperature)
+    return rng.choice(n, size=n, p=p / p.sum())
+
+
+def steepest_step(x, grad, l2, mask):
+    """h* = argmin_h Q_i(w - h * grad): closed form for the quadratic loss with L2."""
+    denom = 2 * (grad @ x) ** 2 + l2 * np.sum((mask * grad) ** 2)
+    return (grad @ grad) / denom if denom > 1e-12 else 0.0
+
+
+def sgd(X, y, w, lr=0.01, momentum=0.0, l2=0.0, n_epochs=50, seed=0, forgetting=None, steepest=False,
+        sampling="random", temperature=1.0):
+    """SGD with momentum: v = gamma * v + (1 - gamma) * lr * grad, then w = w - v.
+
+    Objects are reshuffled every epoch, momentum = 0 gives plain SGD.
+    With steepest = True the step is computed per object instead of using lr.
+    With sampling = "margin" objects near the decision boundary are shown more often.
+    Q is estimated recurrently: Q = lam * loss(i) + (1 - lam) * Q, lam = 1 / len(y) by default.
+    history keeps the recurrent estimate and the true risk over the whole sample after each epoch.
+    """
+    rng = np.random.default_rng(seed)
+    lam = forgetting if forgetting is not None else 1 / len(y)
+    mask = bias_mask(len(w))
+    v = np.zeros_like(w)
+    Q = empirical_risk(w, X, y, l2)
+    history = {"Q": [Q], "risk": [Q]}
+    for _ in range(n_epochs):
+        for i in epoch_order(rng, w, X, y, sampling, temperature):
+            loss = quadratic_loss(y[i] * (X[i] @ w))
+            grad = loss_gradient(w, X[i], y[i]) + l2 * mask * w
+            h = steepest_step(X[i], grad, l2, mask) if steepest else lr
+            v = momentum * v + (1 - momentum) * h * grad
+            w = w - v
+            Q = lam * loss + (1 - lam) * Q
+        history["Q"].append(Q)
+        history["risk"].append(empirical_risk(w, X, y, l2))
+    return w, history
+
+
+def multistart(X, y, n_starts=10, **params):
+    """Trains from several random initial weights and keeps the run with the lowest final risk."""
+    runs = []
+    for k in range(n_starts):
+        w0 = random_weights(np.random.default_rng(k), X.shape[1])
+        runs.append(sgd(X, y, w0, seed=k, **params))
+    best = min(runs, key=lambda run: run[1]["risk"][-1])
+    return best, runs

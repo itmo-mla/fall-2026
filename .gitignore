@@ -6,3 +6,15 @@ __pycache__/
 .vscode/
 .idea/
 *.csv
+.venv
+venv
+
+data
+*.ipynb
+
+__pycache__/
+.vscode/
+
+.idea
+*.csv
+.DS_Store
