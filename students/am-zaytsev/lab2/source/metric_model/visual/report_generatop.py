@@ -1,5 +1,5 @@
 def generate_report(replace_dict):
-    with open("template_README.md", "r") as f:
+    with open("./docs/template_README.md", "r") as f:
         template_text = f.read()
 
     for k, v in replace_dict.items():
