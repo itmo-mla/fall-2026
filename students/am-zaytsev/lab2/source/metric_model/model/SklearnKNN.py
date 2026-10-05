@@ -41,12 +41,15 @@ class SklearnKNN(KNN):
         return self
 
     def predict_prob(self, x):
+        x = np.asarray(x, dtype=float)
+        single = x.ndim == 1
         x = np.atleast_2d(x)
-        proba = self._model.predict_proba(x)[0]
+        proba = self._model.predict_proba(x)
 
         # re-align sklearn's class order with the column order of self.y
         n_classes = self.y.shape[1] if self.y.ndim > 1 else len(np.unique(self.y))
-        aligned = np.zeros(n_classes, dtype=np.float64)
-        for col, cls in enumerate(self._model.classes_):
-            aligned[int(cls)] = proba[col]
-        return aligned
+        aligned = np.zeros((x.shape[0], n_classes), dtype=np.float64)
+        for row_i, row in enumerate(proba):
+            for col, cls in enumerate(self._model.classes_):
+                aligned[row_i, int(cls)] = row[col]
+        return aligned[0] if single else aligned

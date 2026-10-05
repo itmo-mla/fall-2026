@@ -21,5 +21,15 @@ class KNN(ABC):
         pass
 
     def predict_class(self, x):
+        x = np.asarray(x)
         class_distrib = self.predict_prob(x)
-        return np.argmax(class_distrib)
+        if x.ndim == 1:
+            return np.argmax(class_distrib)
+        return np.argmax(class_distrib, axis=-1)
+
+    def acc(self, x, y_true):
+        y_pred = self.predict_class(x)
+        y_true = np.asarray(y_true)
+        if y_true.ndim > 1:
+            y_true = np.argmax(y_true, axis=-1)
+        return (y_pred == y_true).mean()

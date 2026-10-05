@@ -15,7 +15,7 @@ def main():
     df = dataset_module.download_dataset()
 
     dataset_module.draw_data(df)
-    plt.savefig("./images/dataset_plot.png", dpi=300, bbox_inches="tight")
+    # plt.savefig("./images/dataset_plot.png", dpi=300, bbox_inches="tight")
 
     # Preprocess data
     X, y = dataset_module.preprocess_data(df)
@@ -42,6 +42,10 @@ def main():
     print(
         f"Found best params: k: {best_k}, kernel: {best_kernel}. LOO = {round(best_loo, 2)}"
     )
+    model = AdaptiveParzenKNN(best_k, best_kernel)
+    model.train(X, y)
+    acc = model.acc(X, y)
+    print("Acc:", acc)
     fig = draw_loo_res(res, {best_kernel})
     # fig.suptitle('Loss/k plot')
     fig.savefig("./images/choose_k")
@@ -62,9 +66,14 @@ def main():
     print(
         f"skit-learn best params: k: {sk_best_k}, kernel: {sk_best_kernel}. LOO = {round(sk_best_loo, 2)}"
     )
+
+    model = SklearnKNN(sk_best_k, sk_best_kernel)
+    model.train(X, y)
+    acc = model.acc(X, y)
+    print("Acc:", acc)
     fig = draw_loo_res(full_res, {sk_best_kernel} | set(weights_values))
     # fig.suptitle('Loss/k plot')
-    fig.savefig("./images/compare_sklearn")
+    # fig.savefig("./images/compare_sklearn")
 
     # Ref selection
     ref_mask = get_ref_mask(X, y[:, 1][:, np.newaxis])
@@ -74,6 +83,11 @@ def main():
 
     (best_k_ref, best_kernel_ref), best_loo_ref = min(res_ref, key=lambda x: x[1])
     print(f"{best_k_ref=} {best_kernel_ref=}")
+
+    model = AdaptiveParzenKNN(best_k_ref, best_kernel_ref)
+    model.train(X, y)
+    acc = model.acc(X, y)
+    print("Acc:", acc)
 
     print("Full dataset:")
     print("   -size:", X.shape[0])
@@ -104,3 +118,7 @@ def main():
             "ref_loo": round(float(best_loo_ref), 4),
         }
     )
+
+
+if __name__ == "__main__":
+    main()
