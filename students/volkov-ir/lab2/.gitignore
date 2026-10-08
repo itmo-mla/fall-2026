@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.idea/
+.DS_Store
+
+# датасет скачивается при запуске
+*.csv
+
+# ноутбуки и личные заметки в репозиторий не кладём
+*.ipynb
+source/explanations.md
