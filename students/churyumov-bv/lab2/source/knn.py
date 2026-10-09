@@ -35,23 +35,18 @@ def distance_matrix(X, rho, Z=None):
 
 
 def a(dist, y_train, Y, k, K):
-    """
-    a(x; X^l, k, K) = argmax_{y in Y} sum_i [y_i = y] * K( rho(x, x_i) / rho(x, x^(k+1)) )
-    rho -> rho() (значения собраны в distance_matrix()),  K -> gaussian_kernel()
+    order = np.argsort(dist)               # индексы объектов по возрастанию rho(x, x_i)
 
-    dist     - расстояния rho(x, x_i) от x до всех объектов обучения (строка distance_matrix()), shape (l,)
-    y_train  - ответы y_i, shape (l,)
-    Y        - множество классов
-    k        - число соседей (определяет ширину окна)
-    K        - ядро K(r)
-    """
-    # h(x) = rho(x, x^(k+1)): расстояние до (k+1)-го соседа; rho -> rho(), dist -> distance_matrix()
-    h = np.sort(dist)[k]
-    h = max(h, 1e-12)
+    # h(x) = rho(x, x^(k+1)): (k+1)-й сосед только задаёт ширину окна
+    h = max(dist[order[k]], 1e-12)
 
-    # Gamma_y(x) = sum_i [y_i = y] * K(rho(x, x_i) / h); K -> gaussian_kernel()
-    scores = {y: np.sum((y_train == y) * K(dist / h)) for y in Y}
-    return max(scores, key=scores.get)      # argmax по y in Y
+    # голосуют только x^(1), ..., x^(k) — внутри окна, где r < 1
+    nn = order[:k]
+
+    # Gamma_y(x) = sum_{i <= k} [y_i = y] * K(rho(x, x_i) / h)
+    scores = {y: np.sum((y_train[nn] == y) * K(dist[nn] / h)) for y in Y}
+    return max(scores, key=scores.get)
+
 
 
 def loo(D, y, Y, k, K):
@@ -77,6 +72,30 @@ def loo(D, y, Y, k, K):
 def loo_curve(D, y, Y, ks, K):
     l = len(y)
     return [loo(D, y, Y, k, K) / l for k in ks]
+
+
+def loo_prototypes(D, y, omega, Y, k, K):
+    r"""
+    LOO(k, Ω) = sum_{i=1..L} [ a(x_i; Ω \ {x_i}, k) != y_i ]
+    Как CCV(Ω): контроль на всей выборке X^L, соседи — только из Ω.
+
+    D      - матрица расстояний, D[i, j] = rho(x_i, x_j), shape (L, L)
+    y      - ответы y_i, shape (L,)
+    omega  - индексы эталонов Ω
+    Y      - множество классов
+    k      - число соседей
+    K      - ядро K(r)
+    """
+    errors = 0
+    for i in range(len(y)):
+        idx = omega[omega != i]             # Ω без самого x_i (как в selecting.nearest_in())
+        if a(D[i, idx], y[idx], Y, k, K) != y[i]:
+            errors += 1                      # [a(...) != y_i]; a(...) -> a()
+    return errors
+
+def loo_prototypes_curve(D, y, omega, Y, ks, K):
+    L = len(y)
+    return [loo_prototypes(D, y, omega, Y, k, K) / L for k in ks]
 
 
 def predict(D, y_train, Y, k, K):

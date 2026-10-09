@@ -6,10 +6,6 @@ def r_m(L, k):
     return np.array([comb(L - 1 - m, l - 1) / comb(L - 1, l) for m in range(1, k + 1)])
 
 def nearest_in(D, i, omega, k):
-    """
-    Индексы k+1 ближайших к x_i эталонов из Ω (без самого x_i), по возрастанию расстояния.
-    Если эталонов не хватает, остаток заполняется -1.
-    """
     idx = omega[omega != i]                              # Ω без самого x_i
     order = idx[np.argsort(D[i, idx])][:k + 1]           # x_i^(1|Ω), ..., x_i^(k+1|Ω); rho(x_i, x_j) -> D[i] из distance_matrix()
     return np.pad(order, (0, k + 1 - len(order)), constant_values=-1)
@@ -51,15 +47,19 @@ def select_prototypes(D, y, k_ctrl, tol=1e-9):
     nn = np.array([nearest_in(D, i, omega, k_ctrl) for i in range(L)])
     T = contributions(nn, y, R)
     history = [T.mean()]
+    best, stop = None, None                          # Ω и число удалённых объектов в момент остановки
 
     while len(omega) > k_ctrl + 1:
         delta = deletion_deltas(nn, y, R, T)
         x = omega[np.argmin(delta[omega])]
-        if (T.sum() + delta[x]) / L > history[-1] + tol:
-            break
+        if stop is None and (T.sum() + delta[x]) / L > history[-1] + tol:
+            best, stop = omega, len(history) - 1     # CCV начнёт расти — фиксируем Ω, но удаляем дальше ради графика
         omega = omega[omega != x]
         for i in np.where((nn == x).any(axis=1))[0]:
             nn[i] = nearest_in(D, i, omega, k_ctrl)
         T = contributions(nn, y, R)
         history.append(T.mean())
-    return omega, np.array(history)
+
+    if stop is None:                                 # CCV не вырос до самого конца
+        best, stop = omega, len(history) - 1
+    return best, np.array(history), stop

@@ -22,22 +22,23 @@ def compare_with_prototypes(D_train, D_test, y_train, y_test, ks, best_k, k_ctrl
     best_k   - k, подобранный по LOO на полной обучающей выборке
     k_ctrl   - длина контроля CCV при отборе эталонов
 
-    Возвращает словарь: omega (индексы эталонов), history (CCV по шагам), best_k_omega.
+    Возвращает словарь: omega (индексы эталонов), history (CCV по шагам, включая шаги после остановки),
+    stop (число удалённых объектов в момент остановки), best_k_omega.
     """
     Y = np.unique(y_train)
     K = knn.gaussian_kernel
 
     # 6. отбор эталонов
-    omega, history = selecting.select_prototypes(D_train, y_train, k_ctrl)
+    omega, history, stop = selecting.select_prototypes(D_train, y_train, k_ctrl)
     print(f"Отбор эталонов: |Ω| = {len(omega)} из {len(y_train)} "
           f"({100 * len(omega) / len(y_train):.1f}%), "
-          f"CCV {history[0]:.4f} -> {history[-1]:.4f}")
+          f"CCV {history[0]:.4f} -> {history[stop]:.4f}")
 
-    # k заново подбираем по LOO уже на множестве эталонов
+    # k заново подбираем по LOO: контроль на всей X^L, соседи — из Ω (как в CCV(Ω))
     D_omega = D_train[np.ix_(omega, omega)]
     y_omega = y_train[omega]
     ks_omega = [k for k in ks if k <= len(omega) - 2]
-    risks_omega = knn.loo_curve(D_omega, y_omega, Y, ks_omega, K)
+    risks_omega = knn.loo_prototypes_curve(D_train, y_train, omega, Y, ks_omega, K)
     best_k_omega = ks_omega[int(np.argmin(risks_omega))]
     print(f"k по LOO: без отбора {best_k}, с отбором {best_k_omega}")
 
@@ -61,7 +62,7 @@ def compare_with_prototypes(D_train, D_test, y_train, y_test, ks, best_k, k_ctrl
     print(f"{'метод':18s} | {'без отбора':^20s} | {'с отбором':^20s}")
     print(f"{'':18s} | {'accuracy':>9s} {'F1':>9s}  | {'accuracy':>9s} {'F1':>9s}")
     for name, (y_full, y_proto) in predictions.items():
-        print(f"{name:18s} | {accuracy_score(y_test, y_full):9.4f} {f1_score(y_test, y_full):9.4f}  | "
-              f"{accuracy_score(y_test, y_proto):9.4f} {f1_score(y_test, y_proto):9.4f}")
+        print(f"{name:18s} | {accuracy_score(y_test, y_full):9.4f} {f1_score(y_test, y_full, average='macro'):9.4f}  | "
+              f"{accuracy_score(y_test, y_proto):9.4f} {f1_score(y_test, y_proto, average='macro'):9.4f}")
 
-    return {"omega": omega, "history": history, "best_k_omega": best_k_omega}
+    return {"omega": omega, "history": history, "stop": stop, "best_k_omega": best_k_omega}

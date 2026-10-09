@@ -1,0 +1,15 @@
+# Виртуальные окружения
+.venv/
+venv/
+
+# Датасеты (правило репозитория: не хранить большие файлы, качать в рантайме)
+*.csv
+*.parquet
+
+# Кэши Python / Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store

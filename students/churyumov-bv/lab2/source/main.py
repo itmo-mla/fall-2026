@@ -33,11 +33,10 @@ def path(filename):
     return os.path.join(OUTPUT_DIR, filename)
 
 # 1. выбрать датасет для классификации, например на [kaggle](https://www.kaggle.com/datasets?tags=13302-Classification);
-                                                           
 def load_data():
-    df = pd.read_csv(os.path.join(kagglehub.dataset_download("uciml/breast-cancer-wisconsin-data"), "data.csv"))
-    y = (df["diagnosis"] == "M").astype(int).values              # 1 - злокачественная опухоль
-    X = df.drop(columns=["id", "diagnosis", "Unnamed: 32"]).values.astype(float)
+    df = pd.read_csv(os.path.join(kagglehub.dataset_download("uciml/iris"), "Iris.csv"))
+    y = df["Species"].astype("category").cat.codes.values       # 0 - setosa, 1 - versicolor, 2 - virginica
+    X = df.drop(columns=["Id", "Species"]).values.astype(float)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y
     )
@@ -52,7 +51,6 @@ def sklearn_predict(X_train, y_train, X_test, k):
 
 
 def parzen_classifier(X_fit, y_fit, Y, k):
-    # cdist при евклидовой метрике = rho(), но быстрее: для сетки нужны десятки тысяч точек
     return lambda X: knn.predict(cdist(X, X_fit), y_fit, Y, k, knn.gaussian_kernel)
 
 
@@ -71,8 +69,8 @@ if __name__ == "__main__":
     y_pred = knn.predict(D_test, y_train, Y, best_k, knn.gaussian_kernel)
     y_sk = sklearn_predict(X_train, y_train, X_test, best_k)
 
-    print("self KNN : accuracy =", accuracy_score(y_test, y_pred), " F1 =", f1_score(y_test, y_pred))
-    print("sklearn KNN: accuracy =", accuracy_score(y_test, y_sk), " F1 =", f1_score(y_test, y_sk))
+    print("self KNN : accuracy =", accuracy_score(y_test, y_pred), " F1 =", f1_score(y_test, y_pred, average="macro"))
+    print("sklearn KNN: accuracy =", accuracy_score(y_test, y_sk), " F1 =", f1_score(y_test, y_sk, average="macro"))
 
     pca = PCA(n_components=2).fit(X_train)
     Z_test = pca.transform(X_test)
@@ -88,7 +86,7 @@ if __name__ == "__main__":
     res = comparings.compare_with_prototypes(D_train, D_test, y_train, y_test, ks, best_k, k_ctrl=1)
 
     # 7. визуализация отбора эталонов
-    plots.plot_ccv_history(res["history"], path("ccv_history.png"))
+    plots.plot_ccv_history(res["history"], res["stop"], path("ccv_history.png"))
     plots.plot_prototypes(pca.transform(X_train), y_train, res["omega"], path("prototypes.png"))
 
     omega, k_omega = res["omega"], res["best_k_omega"]

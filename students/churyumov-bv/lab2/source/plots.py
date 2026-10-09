@@ -21,11 +21,11 @@ def plot_pca_predictions(Z, y_true, y_pred, path, name, pca=None, predict_fn=Non
                              np.linspace(Z[:, 1].min() - my, Z[:, 1].max() + my, n))
         regions = predict_fn(pca.inverse_transform(np.c_[xx.ravel(), yy.ravel()])).reshape(xx.shape)
         for ax in axes:
-            ax.pcolormesh(xx, yy, regions, cmap="coolwarm", vmin=0, vmax=1, alpha=0.25, shading="auto")
+            ax.pcolormesh(xx, yy, regions, cmap="tab10", vmin=0, vmax=9, alpha=0.25, shading="auto")
 
     for ax, labels, title in zip(axes, (y_true, y_pred),
                                  ("Истинные классы", f"Предсказание: {name}")):
-        ax.scatter(Z[:, 0], Z[:, 1], c=labels, cmap="coolwarm", vmin=0, vmax=1, s=25)
+        ax.scatter(Z[:, 0], Z[:, 1], c=labels, cmap="tab10", vmin=0, vmax=9, s=25)
         ax.set_title(title)
         ax.set_xlabel("PC1")
     axes[0].set_ylabel("PC2")
@@ -39,11 +39,13 @@ def plot_pca_predictions(Z, y_true, y_pred, path, name, pca=None, predict_fn=Non
     plt.close(fig)
 
 
-def plot_ccv_history(history, path):
+def plot_ccv_history(history, stop, path):
     plt.figure()
-    plt.plot(np.arange(len(history)), history)
+    plt.plot(np.arange(len(history)), history, label="CCV(Ω)")
+    plt.axvline(stop, linestyle="--", color="gray", label=f"остановка: удалено {stop}")
     plt.xlabel("число удалённых объектов")
     plt.ylabel("CCV(Ω)")
+    plt.legend()
     plt.savefig(path, dpi=150, bbox_inches="tight")
     plt.close()
 
@@ -51,16 +53,16 @@ def plot_ccv_history(history, path):
 def plot_prototypes(Z, y, omega, path):
     is_proto = np.zeros(len(y), dtype=bool)
     is_proto[omega] = True
-    colors = {0: "tab:blue", 1: "tab:red"}
+    colors = plt.get_cmap("tab10")
 
     plt.figure(figsize=(7, 6))
     for c in np.unique(y):
         rest = (y == c) & ~is_proto
-        plt.scatter(Z[rest, 0], Z[rest, 1], s=12, alpha=0.3, color=colors[c],
+        plt.scatter(Z[rest, 0], Z[rest, 1], s=12, alpha=0.3, color=colors(c),
                     label=f"класс {c}, не эталоны")
     for c in np.unique(y):
         proto = (y == c) & is_proto
-        plt.scatter(Z[proto, 0], Z[proto, 1], s=60, color=colors[c],
+        plt.scatter(Z[proto, 0], Z[proto, 1], s=60, color=colors(c),
                     edgecolors="black", label=f"класс {c}, эталоны")
     plt.xlabel("PC1")
     plt.ylabel("PC2")
