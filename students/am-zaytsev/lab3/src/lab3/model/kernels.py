@@ -7,7 +7,7 @@ def linear(a, b=None):
     return a @ b.T
 
 
-def polynomial(a, b=None, d=1):
+def polynomial(a, b=None, d=3):
     if b is None:
         b = a
     return (a @ b.T) ** d
