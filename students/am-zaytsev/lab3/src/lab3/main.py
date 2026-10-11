@@ -2,7 +2,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 from lab3.datasets import pima as dataset
-from lab3.model import SVM
+from lab3.model import SVM, kernels
 
 RANDOM_SEED = 42
 TEST_SIZE = 0.2
@@ -20,7 +20,7 @@ def main():
     x_train = scaler.fit_transform(x_train)
     x_test = scaler.transform(x_test)
 
-    model = SVM(1)
+    model = SVM(1, kernels.polynomial)
     model.train(x_train, y_train)
 
     train_acc = (model.predict(x_train) == y_train).mean()
