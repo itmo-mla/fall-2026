@@ -91,4 +91,68 @@ def draw_dataset(X, y_true, y_pred=None, mask=None):
     plt.xlabel("t-SNE 1")
     plt.ylabel("t-SNE 2")
     plt.title("t-SNE with k-NN approximated decision background")
-    plt.show()
+
+
+def draw_dataset_pca(X, y_true, y_pred=None, mask=None):
+    if mask is None:
+        mask = np.ones(X.shape[0], dtype=bool)
+    y_true = np.float32(y_true)
+
+    color_map = {"-1.0": "blue", "1.0": "red"}
+
+    classes_unmasked = [str(val) for val, m in zip(y_true, mask) if not m]
+    classes_masked = [str(val) for val, m in zip(y_true, mask) if m]
+    colors_unmasked = [color_map.get(c, "gray") for c in classes_unmasked]
+    colors_masked = [color_map.get(c, "gray") for c in classes_masked]
+
+    X_scaled = StandardScaler().fit_transform(X)
+
+    X_centered = X_scaled - X_scaled.mean(axis=0)
+    u, s, _ = np.linalg.svd(X_centered, full_matrices=False)
+    X_pca = u[:, :2] * s[:2]
+
+    plt.figure(figsize=(8, 6))
+
+    if y_pred is not None:
+        x_min, x_max = X_pca[:, 0].min() - 1, X_pca[:, 0].max() + 1
+        y_min, y_max = X_pca[:, 1].min() - 1, X_pca[:, 1].max() + 1
+        resolution = 200
+        xx, yy = np.meshgrid(
+            np.linspace(x_min, x_max, resolution), np.linspace(y_min, y_max, resolution)
+        )
+
+        knn = KNeighborsClassifier(n_neighbors=1)
+        knn.fit(X_pca, y_pred)
+
+        Z = knn.predict(np.c_[xx.ravel(), yy.ravel()])
+        Z = Z.reshape(xx.shape)
+
+        Z_numeric = (Z + 1) / 2
+
+        cmap_background = ListedColormap(["blue", "red"])
+
+        plt.contourf(
+            xx, yy, Z_numeric, alpha=0.3, cmap=cmap_background, levels=[-0.5, 0.5, 1.5]
+        )
+
+    plt.scatter(
+        x=X_pca[~mask, 0],
+        y=X_pca[~mask, 1],
+        c=colors_unmasked,
+        marker="o",
+        s=10,
+        alpha=0.3,
+    )
+
+    plt.scatter(
+        x=X_pca[mask, 0],
+        y=X_pca[mask, 1],
+        c=colors_masked,
+        marker="o",
+        s=25,
+        alpha=1.0,
+    )
+
+    plt.xlabel("PC 1")
+    plt.ylabel("PC 2")
+    plt.title("PCA with k-NN approximated decision background")
