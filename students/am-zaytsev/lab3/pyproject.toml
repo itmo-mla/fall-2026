@@ -7,11 +7,23 @@ authors = [
     { name = "Zaytsev Artem", email = "zajtsev.artjom@samlit.net" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "numpy>=2.5.4",
+    "scipy>=1.18.1",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.30,<0.10.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.4.0",
+    "matplotlib>=3.11.2",
+    "plotly>=7.1.0",
+    "pytest>=9.1.1",
+    "ruff>=0.17.0",
+]
 
 [project.scripts]
 main = "lab3.main:main"
