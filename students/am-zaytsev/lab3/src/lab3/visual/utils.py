@@ -93,7 +93,7 @@ def draw_dataset(X, y_true, y_pred=None, mask=None):
     plt.title("t-SNE with k-NN approximated decision background")
 
 
-def draw_dataset_pca(X, y_true, y_pred=None, mask=None):
+def draw_dataset_pca(X, y_true, y_pred=None, mask=None, model=None):
     if mask is None:
         mask = np.ones(X.shape[0], dtype=bool)
     y_true = np.float32(y_true)
@@ -107,24 +107,30 @@ def draw_dataset_pca(X, y_true, y_pred=None, mask=None):
 
     X_scaled = StandardScaler().fit_transform(X)
 
-    X_centered = X_scaled - X_scaled.mean(axis=0)
-    u, s, _ = np.linalg.svd(X_centered, full_matrices=False)
+    mean = X_scaled.mean(axis=0)
+    u, s, vt = np.linalg.svd(X_scaled - mean, full_matrices=False)
     X_pca = u[:, :2] * s[:2]
+    components_inv = np.linalg.pinv(vt[:2].T)
 
     plt.figure(figsize=(8, 6))
 
-    if y_pred is not None:
+    if model is not None or y_pred is not None:
         x_min, x_max = X_pca[:, 0].min() - 1, X_pca[:, 0].max() + 1
         y_min, y_max = X_pca[:, 1].min() - 1, X_pca[:, 1].max() + 1
         resolution = 200
         xx, yy = np.meshgrid(
             np.linspace(x_min, x_max, resolution), np.linspace(y_min, y_max, resolution)
         )
+        grid = np.c_[xx.ravel(), yy.ravel()]
 
-        knn = KNeighborsClassifier(n_neighbors=1)
-        knn.fit(X_pca, y_pred)
+        if model is not None:
+            original_space = mean + grid @ components_inv
+            Z = model.predict(original_space)
+        else:
+            knn = KNeighborsClassifier(n_neighbors=1)
+            knn.fit(X_pca, y_pred)
+            Z = knn.predict(grid)
 
-        Z = knn.predict(np.c_[xx.ravel(), yy.ravel()])
         Z = Z.reshape(xx.shape)
 
         Z_numeric = (Z + 1) / 2
@@ -155,4 +161,7 @@ def draw_dataset_pca(X, y_true, y_pred=None, mask=None):
 
     plt.xlabel("PC 1")
     plt.ylabel("PC 2")
-    plt.title("PCA with k-NN approximated decision background")
+    if model is not None:
+        plt.title("PCA with model decision background")
+    else:
+        plt.title("PCA with k-NN approximated decision background")
