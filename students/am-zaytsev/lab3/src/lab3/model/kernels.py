@@ -16,4 +16,4 @@ def polynomial(a, b=None, d=1):
 def rbf(a, b=None, gamma=1):
     if b is None:
         b = a
-    return np.exp(-gamma * np.linalg.norm(a - b[:, None, :], axis=-1) ** 2)
+    return np.exp(-gamma * np.linalg.norm(a[:, None, :] - b, axis=-1) ** 2)

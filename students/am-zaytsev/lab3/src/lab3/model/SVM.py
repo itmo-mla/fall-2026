@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
 
-from .kernels import linear
+from .kernels import linear, polynomial, rbf
 
 
 class SVM:
@@ -11,10 +11,12 @@ class SVM:
         self.w0 = None
         self.lam = 0
         if kernel is None:
-            kernel = linear
+            kernel = rbf
         self.kernel = kernel
 
     def train(self, x: np.ndarray, y: np.ndarray):
+        self.x = x
+        self.y = y
         K = self.kernel(x)  # (n, n) Gram matrix — computed once, outside fun
         H = np.outer(y, y) * K  # also λ-independent — once
         fun = lambda lam: -lam.sum() + 0.5 * lam @ H @ lam
@@ -32,9 +34,10 @@ class SVM:
 
         self.w = np.sum(self.lam[:, None] * y[:, None] * x, axis=0)
         sv = (self.lam > 1e-8) & (self.lam < self.c - 1e-8)
-        self.w0 = (self.w @ x[sv].T - y[sv]).mean()
+        self.w0 = np.mean(self.kernel(x[sv], x) @ (self.lam * y) - y[sv])
+
+    def decision(self, x):
+        return self.kernel(self.x, x).T @ (self.lam * self.y) - self.w0
 
     def predict(self, x):
-        assert self.w is not None
-        assert self.w0 is not None
-        return ((self.kernel(self.w, x) - self.w0) > 0) * 2 - 1
+        return (self.decision(x) > 0) * 2 - 1
