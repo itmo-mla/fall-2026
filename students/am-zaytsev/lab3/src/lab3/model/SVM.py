@@ -5,14 +5,17 @@ from .kernels import linear
 
 
 class SVM:
-    def __init__(self, c):
+    def __init__(self, c, kernel=None):
         self.c = c
         self.w = None
         self.w0 = None
         self.lam = 0
+        if kernel is None:
+            kernel = linear
+        self.kernel = kernel
 
     def train(self, x: np.ndarray, y: np.ndarray):
-        K = linear(x)  # (n, n) Gram matrix — computed once, outside fun
+        K = self.kernel(x)  # (n, n) Gram matrix — computed once, outside fun
         H = np.outer(y, y) * K  # also λ-independent — once
         fun = lambda lam: -lam.sum() + 0.5 * lam @ H @ lam
 
@@ -34,4 +37,4 @@ class SVM:
     def predict(self, x):
         assert self.w is not None
         assert self.w0 is not None
-        return ((self.w @ x.T - self.w0) > 0) * 2 - 1
+        return ((self.kernel(self.w, x) - self.w0) > 0) * 2 - 1
