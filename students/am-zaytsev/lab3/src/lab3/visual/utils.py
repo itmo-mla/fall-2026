@@ -1,63 +1,94 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import ListedColormap
 from sklearn.manifold import TSNE
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 
 
-def draw_dataset(X, y, mask=None):
+def draw_dataset(X, y_true, y_pred=None, mask=None):
     if mask is None:
         mask = np.ones(X.shape[0], dtype=bool)
-    y = np.float32(y)
-    # 1. Define your class-to-color mapping
-    color_map = {"0.0": "blue", "1.0": "red"}
+    y_true = np.float32(y_true)
 
-    # Convert your categories into lists of colors for both groups
-    classes_unmasked = [str(val) for val, m in zip(y[:, 0], mask) if not m]
-    classes_masked = [str(val) for val, m in zip(y[:, 0], mask) if m]
+    # Class-to-color mapping for points
+    color_map = {"-1.0": "blue", "1.0": "red"}
 
-    colors_unmasked = [
-        color_map.get(c, "gray") for c in classes_unmasked
-    ]  # 'gray' is a fallback
+    # Prepare colors for unmasked and masked points
+    classes_unmasked = [str(val) for val, m in zip(y_true, mask) if not m]
+    classes_masked = [str(val) for val, m in zip(y_true, mask) if m]
+    colors_unmasked = [color_map.get(c, "gray") for c in classes_unmasked]
     colors_masked = [color_map.get(c, "gray") for c in classes_masked]
 
-    # Scale features (important for t-SNE)
+    # Scale features
     X_scaled = StandardScaler().fit_transform(X)
 
-    # Run t-SNE
+    # t-SNE embedding
     tsne = TSNE(
         n_components=2,
-        perplexity=30,  # try 5–50; ~sqrt(n) is a good start
+        perplexity=30,
         learning_rate="auto",
         init="pca",
         random_state=42,
-        # n_iter=1000
     )
     X_tsne = tsne.fit_transform(X_scaled)
 
-    # 2. Setup the figure
+    # Setup figure
     plt.figure(figsize=(8, 6))
 
-    # 3. Plot background/unmasked items (Fade effect)
+    # ----- Background prediction using k-NN on t-SNE -----
+    if y_pred is not None:
+        # Create meshgrid covering the t-SNE plot area
+        x_min, x_max = X_tsne[:, 0].min() - 1, X_tsne[:, 0].max() + 1
+        y_min, y_max = X_tsne[:, 1].min() - 1, X_tsne[:, 1].max() + 1
+        resolution = 200
+        xx, yy = np.meshgrid(
+            np.linspace(x_min, x_max, resolution), np.linspace(y_min, y_max, resolution)
+        )
+
+        # Fit k-NN on the 2D t-SNE coordinates using model predictions
+        knn = KNeighborsClassifier(
+            n_neighbors=1
+        )  # you can increase n_neighbors for smoother boundaries
+        knn.fit(X_tsne, y_pred)
+
+        # Predict on grid
+        Z = knn.predict(np.c_[xx.ravel(), yy.ravel()])
+        Z = Z.reshape(xx.shape)
+
+        # Map labels (-1, 1) to (0, 1) for a clean colormap
+        Z_numeric = (Z + 1) / 2  # -1 -> 0, 1 -> 1
+
+        # Define colormap matching your point colors
+        cmap_background = ListedColormap(["blue", "red"])
+
+        # Plot background
+        plt.contourf(
+            xx, yy, Z_numeric, alpha=0.3, cmap=cmap_background, levels=[-0.5, 0.5, 1.5]
+        )
+
+    # ----- Scatter points -----
+    # Unmasked (faded)
     plt.scatter(
         x=X_tsne[~mask, 0],
         y=X_tsne[~mask, 1],
-        c=colors_unmasked,  # Colors represent the class
-        marker="o",  # Circular marker
+        c=colors_unmasked,
+        marker="o",
         s=10,
-        alpha=0.3,  # Faded opacity
+        alpha=0.3,
     )
 
-    # 4. Plot foreground/masked items (Focus effect)
+    # Masked (focused)
     plt.scatter(
         x=X_tsne[mask, 0],
         y=X_tsne[mask, 1],
-        c=colors_masked,  # Colors represent the class
-        marker="o",  # Distinct symbol shape
+        c=colors_masked,
+        marker="o",
         s=25,
-        alpha=1.0,  # Full opacity
+        alpha=1.0,
     )
 
-    # 5. Final layout
     plt.xlabel("t-SNE 1")
     plt.ylabel("t-SNE 2")
-    plt.title("t-SNE Class Colors (Red/Blue) with Mask Opacity")
+    plt.title("t-SNE with k-NN approximated decision background")
+    plt.show()
