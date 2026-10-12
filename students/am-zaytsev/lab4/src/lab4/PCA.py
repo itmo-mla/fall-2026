@@ -9,10 +9,8 @@ def svd(mtx):
 class PCA:
     def __init__(self, x: np.ndarray):
         self.x = x
-        self.u, self.s, self.v = svd(x)
+        self.v, self.s, self.u_t = svd(x)
+        self.g = self.x @ self.u_t.T
 
     def reconstruct(self):
-        s_mtx = np.zeros((self.x.shape[0], self.x.shape[1]))
-        np.fill_diagonal(s_mtx, self.s)
-
-        return self.u @ s_mtx @ self.v
+        return self.g @ self.u_t
