@@ -17,9 +17,12 @@ DATASET_DESC = """
 
 def download_dataset() -> pd.DataFrame:
     # Download latest version
-    data_path = kagglehub.dataset_download(
-        "jamaltariqcheema/pima-indians-diabetes-dataset"
-    )
+    try:
+        data_path = kagglehub.dataset_download(
+            "jamaltariqcheema/pima-indians-diabetes-dataset"
+        )
+    except:
+        data_path = "/home/artem/.cache/kagglehub/datasets/jamaltariqcheema/pima-indians-diabetes-dataset/versions/1/"
     df = pd.read_csv(os.path.join(data_path, "diabetes.csv"))
     return df
 
