@@ -1,24 +1,38 @@
 import os
 
+import numpy as np
 import pandas as pd
 
 # Column holding the class label — adjust if your CSV uses a different name
-LABEL_COL = "Outcome"
 
 
-def download_dataset() -> pd.DataFrame:
+def find(root):
+    for fname in os.listdir(root):
+        fpath = os.path.join(root, fname)
+        if os.path.isdir(fpath):
+            yield from find(fpath)
+            continue
+        if str(fname).endswith(".csv"):
+            yield fpath
+
+
+def download_dataset(id=2) -> pd.DataFrame:
     # Download latest version
-    data_path = "~/.cache/kagglehub/datasets/jamaltariqcheema/pima-indians-diabetes-dataset/versions/1"
-    df = pd.read_csv(os.path.join(data_path, "diabetes.csv"))
+    data_root = "/home/artem/.cache/kagglehub/datasets/"
+    data_path = list(find(data_root))[id]
+    df = pd.read_csv(data_path)
+    if 'Id' in df:
+        del df['Id']
+    df = df.drop(columns=list(df)[-1])
     return df
 
 
 def preprocess_data(df):
-    # Some copies ship an extra "Id" column — drop it if present
-    id_cols = [c for c in ("Id", "id") if c in df.columns]
-    if id_cols:
-        df = df.drop(columns=id_cols)
+    X = np.float32(df.to_numpy())
+    return X
 
-    X = df.drop(LABEL_COL, axis=1).to_numpy()
-    Y = df[LABEL_COL].to_numpy()
-    return X, Y * 2 - 1
+
+if __name__ == "__main__":
+    # print(find("/home/artem/.cache/kagglehub/datasets/"))
+    for i in find():
+        print(i)
