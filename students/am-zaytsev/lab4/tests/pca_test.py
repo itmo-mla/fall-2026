@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from lab4.PCA import PCA
+from lab4.PCA import PCA, my_svd
 from sklearn.decomposition import PCA as skPCA
 
 np.random.default_rng(12345)
