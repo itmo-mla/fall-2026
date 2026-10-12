@@ -24,5 +24,6 @@ class PCA:
         self.g = self.v @ s_mtx
         self.components = self.x.shape[1] - cnt
 
+    @property
     def reduced(self):
         return self.g

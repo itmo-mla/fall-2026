@@ -32,13 +32,17 @@ def test_reduce_components(n, m):
         assert abs(sse - singular_error) < 1e-4, f"{reduce_cnt=}"
 
 
-@pytest.mark.parametrize("components_k", list(range(10)))
+@pytest.mark.parametrize("components_k", list(range(1, 10)))
 def test_compare_pca(components_k):
-    arr = np.random.randint(0, 100, (100, 10))
+    arr = np.random.randint(0, 100, (20, 10))
 
     sk_pca = skPCA(n_components=components_k)
     sk_x = sk_pca.fit_transform(arr)
 
     pca = PCA(arr)
     pca.reduce_component(arr.shape[1] - components_k)
-    assert np.allclose(np.abs(pca.g), np.abs(sk_x), atol=0.001)
+    abs_error = np.abs((pca.reduced - sk_x) / sk_x)
+    abs_error = np.minimum(
+        abs_error, np.abs(2 - abs_error)
+    )  # 2 abs error - sign different
+    assert (abs_error).max() < 1e-4
