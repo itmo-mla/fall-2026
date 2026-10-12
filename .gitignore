@@ -10,3 +10,4 @@ __pycache__/
 .idea
 *.csv
 .DS_Store
+*.txt
