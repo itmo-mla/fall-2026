@@ -2,6 +2,7 @@ from itertools import product
 
 import numpy as np
 from matplotlib import pyplot as plt
+from sklearn.model_selection import train_test_split
 
 from metric_model.dataset import pima as dataset_module
 from metric_model.model import AdaptiveParzenKNN, SklearnKNN
@@ -76,17 +77,30 @@ def main():
     # fig.savefig("./images/compare_sklearn")
 
     # Ref selection
-    ref_mask = get_ref_mask(X, y[:, 1][:, np.newaxis])
+    idx = np.arange(X.shape[0])
+    train_idx, test_idx = train_test_split(
+        idx, test_size=0.3, random_state=42, stratify=y.argmax(axis=1)
+    )
+    X_train, y_train = X[train_idx], y[train_idx]
+    X_test, y_test = X[test_idx], y[test_idx]
 
-    res_ref = loo(X, y, AdaptiveParzenKNN, search_params_list, mask=ref_mask)
+    ref_mask = get_ref_mask(X_train, y_train[:, 1][:, np.newaxis])
+    X_ref, y_ref = X_train[ref_mask], y_train[ref_mask]
+
+    res_ref = []
+    for params in search_params_list:
+        model = AdaptiveParzenKNN(*params)
+        model.train(X_ref, y_ref)
+        error_cnt = (model.predict_class(X_test) != y_test.argmax(axis=1)).mean()
+        res_ref.append([params, error_cnt])
     # fig = draw_loo_res(res_ref, {best_kernel_ref})
 
     (best_k_ref, best_kernel_ref), best_loo_ref = min(res_ref, key=lambda x: x[1])
     print(f"{best_k_ref=} {best_kernel_ref=}")
 
     model = AdaptiveParzenKNN(best_k_ref, best_kernel_ref)
-    model.train(X, y)
-    acc = model.acc(X, y)
+    model.train(X_ref, y_ref)
+    acc = model.acc(X_test, y_test)
     print("Acc:", acc)
 
     print("Full dataset:")
@@ -97,7 +111,7 @@ def main():
     print("   -size:", ref_mask.sum(), f"({round(ref_mask.mean() * 100, 1)}%)")
     print("   -loo:", round(best_loo_ref, 4))
 
-    fig = draw_dataset(X, 1 - y, ref_mask)
+    fig = draw_dataset(X_train, 1 - y_train, ref_mask)
     plt.savefig("./images/ref_dataset_plot.png", dpi=300, bbox_inches="tight")
 
     plt.show()
