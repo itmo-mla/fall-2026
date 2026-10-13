@@ -49,7 +49,6 @@ class PCA:
 
         self.x = x - self.mean
         self.v, self.s, self.u_t = svd(self.x)
-        print(self.s)
         self.g = self.x @ self.u_t.T
         self.components = self.x.shape[1]
 
