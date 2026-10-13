@@ -1,7 +1,7 @@
 import os
 
-import numpy as np
 import pandas as pd
+from sklearn.datasets import load_breast_cancer
 
 # Column holding the class label — adjust if your CSV uses a different name
 
@@ -17,19 +17,11 @@ def find(root):
 
 
 def download_dataset(id=2) -> pd.DataFrame:
-    # Download latest version
-    data_root = "/home/artem/.cache/kagglehub/datasets/"
-    data_path = list(find(data_root))[id]
-    df = pd.read_csv(data_path)
-    if 'Id' in df:
-        del df['Id']
-    df = df.drop(columns=list(df)[-1])
-    return df
+    return load_breast_cancer()
 
 
 def preprocess_data(df):
-    X = np.float32(df.to_numpy())
-    return X
+    return df["data"]
 
 
 if __name__ == "__main__":
