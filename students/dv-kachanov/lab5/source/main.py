@@ -15,8 +15,19 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-from logreg import autograd_gradient, gradient, irls, log_likelihood, newton_raphson, predict, predict_proba
 from plots import plot_convergence, plot_probabilities
+
+from logreg import (
+    autograd_gradient,
+    correct_class_proba,
+    decision,
+    gradient,
+    irls,
+    newton_raphson,
+    objective_Q,
+    predict01,
+    to_signed_labels,
+)
 
 
 def evaluate(y_true, y_pred, name):
@@ -33,68 +44,75 @@ def evaluate(y_true, y_pred, name):
 
 dataset = load_breast_cancer()
 X = dataset.data
-y = dataset.target
+y01 = dataset.target
 
-X_train, X_test, y_train, y_test = train_test_split(
+X_train_raw, X_test_raw, y01_train, y01_test = train_test_split(
     X,
-    y,
+    y01,
     test_size=0.25,
     random_state=42,
-    stratify=y
+    stratify=y01
 )
 
 scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
+F_train = scaler.fit_transform(X_train_raw)
+F_test = scaler.transform(X_test_raw)
 
-X_train = np.column_stack((np.ones(len(X_train)), X_train))
-X_test = np.column_stack((np.ones(len(X_test)), X_test))
+# Метки датасета {0, 1} -> нотация лекции {-1, +1} (слайд 20).
+y_tilde_train = to_signed_labels(y01_train)
+y_tilde_test = to_signed_labels(y01_test)
+
+# Матрица данных лекции F = (f_j(x_i)) размера l x n, БЕЗ bias-столбца.
+print("Размер F_train:", F_train.shape)
+print("Размер F_test:", F_test.shape)
 
 
 # реализовать логистическую регрессию с помощью метода Ньютона-Рафсона и IRLS;
 
 print("Отклонение автоград-градиента от замкнутой формулы:", np.max(np.abs(
-    autograd_gradient(X_train, y_train, np.zeros(X_train.shape[1]))
-    - gradient(X_train, y_train, np.zeros(X_train.shape[1]))
+    autograd_gradient(F_train, y_tilde_train, np.zeros(F_train.shape[1]))
+    - gradient(F_train, y_tilde_train, np.zeros(F_train.shape[1]))
 )))
 
-w_newton, newton_history = newton_raphson(X_train, y_train)
-w_irls, irls_history = irls(X_train, y_train)
+w_newton, newton_history, newton_iters = newton_raphson(F_train, y_tilde_train, h_t=1.0)
+w_irls, irls_history, irls_iters = irls(F_train, y_tilde_train, h_t=1.0)
 
-print("Итераций Ньютона-Рафсона:", len(newton_history) - 1)
-print("Итераций IRLS:", len(irls_history) - 1)
-print("Функционал J(w) (Ньютон-Рафсон):", newton_history[-1])
-print("Функционал J(w) (IRLS):", irls_history[-1])
+print("Шаг h_t (оба метода):", 1.0)
+print("Итераций Ньютона-Рафсона:", newton_iters)
+print("Итераций IRLS:", irls_iters)
+print("Функционал Q(w) (Ньютон-Рафсон):", newton_history[-1])
+print("Функционал Q(w) (IRLS):", irls_history[-1])
 print("Макс. отклонение весов Ньютон-Рафсон / IRLS:", np.max(np.abs(w_newton - w_irls)))
 
 plot_convergence(newton_history, irls_history, OUTPUT_DIR / "convergence.png")
 
 
-# показать эквивалентность с эталонной реализацией;
+# показать сопоставление с эталонной реализацией;
 
 reference_model = LogisticRegression(C=1.0, solver="lbfgs", tol=1e-8, max_iter=20000)
-reference_model.fit(X_train[:, 1:], y_train)
+reference_model.fit(X_train_raw, y01_train)
 
-w_reference = np.concatenate(([reference_model.intercept_[0]], reference_model.coef_[0]))
+reference_pred = reference_model.predict(X_test_raw)
+own_pred = predict01(F_test, w_newton)
+own_pred_irls = predict01(F_test, w_irls)
 
 print()
-print("Макс. отклонение весов от эталона:", np.max(np.abs(w_newton - w_reference)))
-print("Логарифмическое правдоподобие (эталон):", log_likelihood(X_train, y_train, w_reference))
+print("Доля совпадающих предсказаний (наш Ньютон vs sklearn):",
+      float(np.mean(own_pred == reference_pred)))
+print("Доля совпадающих предсказаний (наш IRLS vs sklearn):",
+      float(np.mean(own_pred_irls == reference_pred)))
 
-own_proba = predict_proba(X_test, w_newton)
-reference_proba = reference_model.predict_proba(X_test[:, 1:])[:, 1]
+test_sigma = correct_class_proba(F_test, y_tilde_test, w_newton)
 
-print("Макс. отклонение вероятностей от эталона:", np.max(np.abs(own_proba - reference_proba)))
-
-plot_probabilities(own_proba, y_test, OUTPUT_DIR / "probabilities.png")
+plot_probabilities(test_sigma, y_tilde_test, OUTPUT_DIR / "probabilities.png")
 
 
 # оценить качество классификации;
 
 results = [
-    evaluate(y_test, predict(X_test, w_newton), "Newton-Raphson"),
-    evaluate(y_test, predict(X_test, w_irls), "IRLS"),
-    evaluate(y_test, reference_model.predict(X_test[:, 1:]), "sklearn LogisticRegression"),
+    evaluate(y01_test, own_pred, "Newton-Raphson"),
+    evaluate(y01_test, own_pred_irls, "IRLS"),
+    evaluate(y01_test, reference_pred, "sklearn LogisticRegression"),
 ]
 
 results_df = pd.DataFrame(results)
@@ -102,6 +120,11 @@ results_df = pd.DataFrame(results)
 print()
 print("Итоговые результаты:")
 print(results_df.to_string(index=False))
+print()
+print("Q(w) на обучающей выборке:", objective_Q(F_train, y_tilde_train, w_newton))
+print("Q(w) на тестовой выборке:", objective_Q(F_test, y_tilde_test, w_newton))
+print("Доля верных знаков (train):", float(np.mean(decision(F_train, w_newton) == y_tilde_train)))
+print("Доля верных знаков (test):", float(np.mean(decision(F_test, w_newton) == y_tilde_test)))
 
 
 # подготовить отчет.

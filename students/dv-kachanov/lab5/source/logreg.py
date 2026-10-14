@@ -1,10 +1,43 @@
+"""Логистическая регрессия в постановке слайдов 6-9 + 20 лекции 5.
+
+Обозначения лекции:
+    F       - матрица "объекты-признаки" (f_j(x_i)) размера l x n, БЕЗ bias-столбца;
+    y_tilde - подписанные метки {-1, +1}, y_tilde_i = 2*y_i - 1 (слайд 20);
+    M_i     - отступ M_i = y_tilde_i * w^T x_i (слайд 6);
+    sigma_i - сигмоид ОТСТУПА sigma_i = sigma(M_i) = P(y_i | x_i) (слайды 7-8);
+    Q(w)    - функционал Q(w) = sum_i L(M_i), L(M) = log(1 + exp(-M)) (слайд 6);
+    D       - диагональная матрица весов D = diag((1 - sigma_i) * sigma_i) (слайд 8);
+    F_tilde - взвешенная матрица F_tilde = diag(gamma) F,
+              gamma_i = sqrt((1 - sigma_i) * sigma_i) (слайд 9);
+    h_t     - величина шага, h_t = 1 (слайды 3, 7).
+
+Градиент (слайд 7):  dQ/dw_j = -sum_i (1 - sigma_i) * y_tilde_i * f_j(x_i).
+Гессиан (слайд 7):   d2Q/dw_j dw_k = sum_i (1 - sigma_i) * sigma_i * f_j(x_i) * f_k(x_i).
+Ньютон (слайд 7):    w^{t+1} := w^t - h_t * (Q''(w^t))^{-1} Q'(w^t), h_t = 1.
+IRLS (слайды 8-9):   рабочий ответ y_tilde_i / sigma_i, веса (1 - sigma_i) * sigma_i,
+    взвешенная задача sum_i (1 - sigma_i) * sigma_i * (w^T x_i - y_tilde_i / sigma_i)^2 -> min,
+    шаг w := w + h_t * (F_tilde^T F_tilde)^{-1} F_tilde^T y_work,
+    где y_work_i = gamma_i * y_tilde_i / sigma_i = y_tilde_i * sqrt((1 - sigma_i) / sigma_i),
+    что тождественно решению взвешенной задачи (домножение на gamma сводит
+    взвешенный МНК к обычному МНК ||F_tilde * delta - y_work||^2).
+Инициализация (слайд 9, п.1): w := (F^T F)^{-1} F^T y_tilde (обычный МНК).
+Останов (слайд 9, п.9): выход, когда {sigma_i} мало изменились.
+
+Численные (не модельные) приёмы: вырожденные системы решаются через lstsq/pinv,
+деления на sigma_i защищены floor 1e-12. Регуляризации tau в лекции нет.
+"""
+
 import numpy as np
 
 from autograd import Tensor
 
+_H_T = 1.0
+_SIGMA_FLOOR = 1e-12
+
 
 def sigmoid(z):
-    result = np.empty_like(np.asarray(z, dtype=float))
+    z = np.asarray(z, dtype=float)
+    result = np.empty_like(z, dtype=float)
 
     positive = z >= 0
     result[positive] = 1.0 / (1.0 + np.exp(-z[positive]))
@@ -15,104 +48,147 @@ def sigmoid(z):
     return result
 
 
-def probabilities(X, w):
-    return sigmoid(X @ w)
+def to_signed_labels(y01):
+    """Перевод меток датасета {0, 1} в нотацию лекции {-1, +1} (слайд 20)."""
+    return 2.0 * np.asarray(y01, dtype=float) - 1.0
 
 
-def log_likelihood(X, y, w):
-    p = probabilities(X, w)
-    eps = 1e-12
-    return float(np.sum(y * np.log(p + eps) + (1.0 - y) * np.log(1.0 - p + eps)))
+def margins(F, y_tilde, w):
+    """Отступы M_i = y_tilde_i * w^T x_i (слайд 6)."""
+    return np.asarray(y_tilde, dtype=float) * (np.asarray(F, dtype=float) @ np.asarray(w, dtype=float))
 
 
-def objective(X, y, w, l2=1.0):
-    return -log_likelihood(X, y, w) + 0.5 * l2 * np.sum(w[1:] ** 2)
+def sigmas(F, y_tilde, w):
+    """sigma_i = sigma(M_i) - сигмоид ОТСТУПА (слайд 7)."""
+    return sigmoid(margins(F, y_tilde, w))
 
 
-def autograd_gradient(X, y, w, l2=1.0):
-    X = np.asarray(X, dtype=float)
-    y = np.asarray(y, dtype=float)
+def objective_Q(F, y_tilde, w):
+    """Q(w) = sum_i L(M_i), L(M) = log(1 + exp(-M)) (слайд 6)."""
+    M = margins(F, y_tilde, w)
+    return float(np.sum(np.logaddexp(0.0, -M)))
+
+
+def autograd_gradient(F, y_tilde, w):
+    """Градиент Q(w) через минимальный автоград (проверка замкнутой формулы слайда 7)."""
+    F = np.asarray(F, dtype=float)
+    y_tilde = np.asarray(y_tilde, dtype=float)
     w = np.asarray(w, dtype=float)
 
-    n_features = X.shape[1]
-
-    X_tensor = Tensor(X)
-    y_tensor = Tensor(y)
+    F_tensor = Tensor(F)
+    y_tensor = Tensor(y_tilde)
     w_tensor = Tensor(w)
-    mask = Tensor(np.concatenate(([0.0], np.ones(n_features - 1))))
 
-    scores = X_tensor @ w_tensor
-    softplus = (Tensor(1.0) + scores.exp()).log()
-    nll = (softplus + (-(y_tensor * scores))).mean() * float(len(X))
-    reg = (w_tensor * mask * w_tensor).mean() * (0.5 * l2 * float(n_features))
-    loss = nll + reg
+    scores = F_tensor @ w_tensor
+    M = scores * y_tensor
+    loss_terms = (Tensor(1.0) + (-M).exp()).log()
+    loss = loss_terms.mean() * float(F.shape[0])
 
     loss.backward()
 
     return w_tensor.grad.copy()
 
 
-def gradient(X, y, w, l2=1.0):
-    grad = X.T @ (probabilities(X, w) - y)
-    grad[1:] = grad[1:] + l2 * w[1:]
-    return grad
+def gradient(F, y_tilde, w):
+    """Q'(w): dQ/dw_j = -sum_i (1 - sigma_i) * y_tilde_i * f_j(x_i) (слайд 7)."""
+    F = np.asarray(F, dtype=float)
+    y_tilde = np.asarray(y_tilde, dtype=float)
+    sigma = sigmas(F, y_tilde, w)
+    return -F.T @ ((1.0 - sigma) * y_tilde)
 
 
-def hessian(X, w, l2=1.0):
-    p = probabilities(X, w)
-    weights = p * (1.0 - p)
-    H = (X.T * weights) @ X
-    H[1:, 1:] = H[1:, 1:] + l2 * np.eye(X.shape[1] - 1)
-    return H
+def hessian(F, y_tilde, w):
+    """Q''(w): d2Q/dw_j dw_k = sum_i (1 - sigma_i) * sigma_i * f_j * f_k (слайд 7)."""
+    F = np.asarray(F, dtype=float)
+    sigma = sigmas(F, y_tilde, w)
+    weights = (1.0 - sigma) * sigma
+    return (F.T * weights) @ F
 
 
-def newton_raphson(X, y, l2=1.0, max_iter=100, tol=1e-10):
-    X = np.asarray(X, dtype=float)
-    y = np.asarray(y, dtype=float)
+def _solve_or_lstsq(A, b):
+    try:
+        return np.linalg.solve(A, b)
+    except np.linalg.LinAlgError:
+        return np.linalg.lstsq(A, b, rcond=None)[0]
 
-    w = np.zeros(X.shape[1])
-    history = [objective(X, y, w, l2)]
 
+def least_squares_init(F, y_tilde):
+    """Нулевое приближение w := (F^T F)^{-1} F^T y_tilde (слайд 9, п.1)."""
+    F = np.asarray(F, dtype=float)
+    y_tilde = np.asarray(y_tilde, dtype=float)
+    return np.linalg.lstsq(F, y_tilde, rcond=None)[0]
+
+
+def newton_raphson(F, y_tilde, h_t=_H_T, max_iter=100, tol=1e-10):
+    """Метод Ньютона-Рафсона (слайд 7): w := w - h_t * (Q'')^{-1} Q', h_t = 1."""
+    F = np.asarray(F, dtype=float)
+    y_tilde = np.asarray(y_tilde, dtype=float)
+
+    w = least_squares_init(F, y_tilde)
+    sigma = sigmas(F, y_tilde, w)
+    history = [objective_Q(F, y_tilde, w)]
+
+    n_iter = 0
     for _ in range(max_iter):
-        step = np.linalg.solve(hessian(X, w, l2), autograd_gradient(X, y, w, l2))
-        w = w - step
-        history.append(objective(X, y, w, l2))
+        grad = gradient(F, y_tilde, w)
+        H = hessian(F, y_tilde, w)
+        step = _solve_or_lstsq(H, grad)
+        w = w - h_t * step
+        n_iter += 1
+        history.append(objective_Q(F, y_tilde, w))
 
-        if np.linalg.norm(step) < tol:
+        sigma_new = sigmas(F, y_tilde, w)
+        if float(np.max(np.abs(sigma_new - sigma))) < tol:
+            sigma = sigma_new
             break
+        sigma = sigma_new
 
-    return w, np.array(history)
+    return w, np.array(history), n_iter
 
 
-def irls(X, y, l2=1.0, max_iter=100, tol=1e-10):
-    X = np.asarray(X, dtype=float)
-    y = np.asarray(y, dtype=float)
+def irls(F, y_tilde, h_t=_H_T, max_iter=100, tol=1e-10):
+    """IRLS (слайды 8-9): w := w + h_t * (F_tilde^T F_tilde)^{-1} F_tilde^T y_work, h_t = 1."""
+    F = np.asarray(F, dtype=float)
+    y_tilde = np.asarray(y_tilde, dtype=float)
 
-    w = np.zeros(X.shape[1])
-    history = [objective(X, y, w, l2)]
+    w = least_squares_init(F, y_tilde)
+    sigma = sigmas(F, y_tilde, w)
+    history = [objective_Q(F, y_tilde, w)]
 
-    penalty = np.zeros(X.shape[1])
-    penalty[1:] = l2
-
+    n_iter = 0
     for _ in range(max_iter):
-        p = probabilities(X, w)
-        weights = p * (1.0 - p)
-        z = (X @ w) + (y - p) / np.maximum(weights, 1e-12)
+        sigma_safe = np.clip(sigma, _SIGMA_FLOOR, 1.0)
+        gamma = np.sqrt((1.0 - sigma_safe) * sigma_safe)
+        # D = diag((1 - sigma_i) * sigma_i) - веса слайда 8; F_tilde = diag(gamma) F.
+        F_tilde = gamma[:, None] * F
+        # Рабочий ответ слайда 8 y_tilde_i / sigma_i, пересчитанный к обычному
+        # МНК ||F_tilde delta - y_work||^2: y_work_i = gamma_i * y_tilde_i / sigma_i.
+        y_work = y_tilde * gamma / sigma_safe
+        delta = np.linalg.lstsq(F_tilde, y_work, rcond=None)[0]
+        w = w + h_t * delta
+        n_iter += 1
+        history.append(objective_Q(F, y_tilde, w))
 
-        A = (X.T * weights) @ X + np.diag(penalty)
-        b = (X.T * weights) @ z
-        w = np.linalg.solve(A, b)
-        history.append(objective(X, y, w, l2))
-
-        if np.linalg.norm(autograd_gradient(X, y, w, l2)) < tol:
+        sigma_new = sigmas(F, y_tilde, w)
+        if float(np.max(np.abs(sigma_new - sigma))) < tol:
+            sigma = sigma_new
             break
+        sigma = sigma_new
 
-    return w, np.array(history)
-
-
-def predict_proba(X, w):
-    return probabilities(np.asarray(X, dtype=float), w)
+    return w, np.array(history), n_iter
 
 
-def predict(X, w, threshold=0.5):
-    return (predict_proba(X, w) >= threshold).astype(int)
+def decision(F, w):
+    """Решающая функция лекции a(x, w) = sign(w^T x) (слайд 6), значения в {-1, +1}."""
+    scores = np.asarray(F, dtype=float) @ np.asarray(w, dtype=float)
+    return np.where(scores >= 0.0, 1.0, -1.0)
+
+
+def predict01(F, w):
+    """Предсказания в нотации датасета {0, 1} для подсчёта метрик."""
+    return ((decision(F, w) + 1.0) / 2.0).astype(int)
+
+
+def correct_class_proba(F, y_tilde, w):
+    """sigma_i = P(y_i | x_i) - вероятности правильной классификации (слайд 8)."""
+    return sigmas(F, y_tilde, w)
