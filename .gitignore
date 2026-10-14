@@ -1,8 +1,12 @@
-.venv/
-venv/
-.DS_Store
+.venv
+venv
+
+data
+*.ipynb
+
 __pycache__/
-*.pyc
 .vscode/
-.idea/
+
+.idea
 *.csv
+.DS_Store
