@@ -13,7 +13,6 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 
 from plots import plot_convergence, plot_probabilities
 
@@ -46,17 +45,13 @@ dataset = load_breast_cancer()
 X = dataset.data
 y01 = dataset.target
 
-X_train_raw, X_test_raw, y01_train, y01_test = train_test_split(
+F_train, F_test, y01_train, y01_test = train_test_split(
     X,
     y01,
     test_size=0.25,
     random_state=42,
     stratify=y01
 )
-
-scaler = StandardScaler()
-F_train = scaler.fit_transform(X_train_raw)
-F_test = scaler.transform(X_test_raw)
 
 # Метки датасета {0, 1} -> нотация лекции {-1, +1} (слайд 20).
 y_tilde_train = to_signed_labels(y01_train)
@@ -90,9 +85,9 @@ plot_convergence(newton_history, irls_history, OUTPUT_DIR / "convergence.png")
 # показать сопоставление с эталонной реализацией;
 
 reference_model = LogisticRegression(C=1.0, solver="lbfgs", tol=1e-8, max_iter=20000)
-reference_model.fit(X_train_raw, y01_train)
+reference_model.fit(F_train, y01_train)
 
-reference_pred = reference_model.predict(X_test_raw)
+reference_pred = reference_model.predict(F_test)
 own_pred = predict01(F_test, w_newton)
 own_pred_irls = predict01(F_test, w_irls)
 
