@@ -1,0 +1,37 @@
+RANDOM_STATE=7832
+
+N = 100
+100/100
+
+Best metrics:
+               Accuracy  Precision    Recall
+ref            0.870968   0.857143  0.947368
+corr           0.822581   0.837838  0.861111
+multistart     0.741935   0.727273  0.774194
+unsure_margin  0.709677   0.709677  1.000000
+shuffling      0.677419   0.677419  1.000000
+
+corr metrics:
+       Accuracy  Precision    Recall
+train  0.751724   0.729412  0.826667
+test   0.822581   0.837838  0.861111
+
+multistart metrics:
+       Accuracy  Precision    Recall
+train  0.696552   0.714286  0.750000
+test   0.741935   0.727273  0.774194
+
+shuffling metrics:
+       Accuracy  Precision  Recall
+train  0.475862   0.475862     1.0
+test   0.677419   0.677419     1.0
+
+unsure_margin metrics:
+       Accuracy  Precision  Recall
+train  0.462069   0.462069     1.0
+test   0.709677   0.709677     1.0
+
+ref metrics:
+       Accuracy  Precision    Recall
+train  0.834483   0.757895  0.986301
+test   0.870968   0.857143  0.947368
