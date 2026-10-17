@@ -371,7 +371,6 @@ def prepare_data(
     """Матрица для PCA и линейной регрессии.
 
     StandardScaler обучается только на train. Цель в матрицу не входит.
-    SVD и сравнение со sklearn.decomposition.PCA здесь намеренно не считаются.
     """
     if df is None:
         df = load_raw_dataframe()
