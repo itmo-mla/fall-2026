@@ -71,6 +71,10 @@ if __name__ == "__main__":
         X_train,
         X_test,
     )
-    # Первый столбец равен единице: его коэффициент и есть свободный член w0.
+    # Первый столбец равен единице: его коэффициент и есть свободный член w0. 
+    # TODO: однако в SVM обычно не заносят его в фичи, потому что потом будут накладывать ограничения на веса, которые накладывать на w0 не имеет смысла
     X_train = np.column_stack([np.ones(len(X_train)), X_train])
     X_test = np.column_stack([np.ones(len(X_test)), X_test])
+    print(train_data['Departure Delay in Minutes'].describe())
+    print(train_data['Arrival Delay in Minutes'].describe())
+    
