@@ -38,7 +38,7 @@ def main():
     print(f"train accuracy: {train_acc:.4f}")
     print(f"test accuracy: {test_acc:.4f}")
 
-    model = SVC(kernel="rbf", C=1.0)
+    model = SVC(kernel="rbf", C=1.0, gamma=0.1)
     model.fit(x_train, y_train)
     train_acc = (model.predict(x_train) == y_train).mean()
     test_acc = (model.predict(x_test) == y_test).mean()
