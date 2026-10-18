@@ -29,7 +29,10 @@ def main():
     train_acc = (model.predict(x_train) == y_train).mean()
     test_acc = (model.predict(x_test) == y_test).mean()
     draw_dataset(
-        x_train, y_train, y_pred=model.predict(x_train), mask=model.lam == model.c
+        x_train,
+        y_train,
+        y_pred=model.predict(x_train),
+        mask=(0 < model.lam) & (model.lam <= model.c),
     )
     plt.savefig("./images/train_data.png", dpi=300, bbox_inches="tight")
 
