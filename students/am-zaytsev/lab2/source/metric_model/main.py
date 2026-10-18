@@ -91,7 +91,7 @@ def main():
     for params in search_params_list:
         model = AdaptiveParzenKNN(*params)
         model.train(X_ref, y_ref)
-        error_cnt = (model.predict_class(X_test) != y_test.argmax(axis=1)).mean()
+        error_cnt = (model.predict_class(X_train) != y_train.argmax(axis=1)).mean()
         res_ref.append([params, error_cnt])
     # fig = draw_loo_res(res_ref, {best_kernel_ref})
 
