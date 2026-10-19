@@ -12,13 +12,40 @@ from .core import log
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_PATH = ROOT / "data" / "data.csv"
+KAGGLE_DATASET = "uciml/breast-cancer-wisconsin-data"
 
 DROP_COLS = ["id"]
 TARGET_COL = "diagnosis"
 
 
+def _ensure_csv(path: Path) -> Path:
+    """Возвращает путь к data.csv. Если файла нет — качает с Kaggle."""
+    if path.exists():
+        return path
+    try:
+        import kagglehub
+    except ImportError as e:
+        raise RuntimeError(
+            "Нужен пакет kagglehub: pip install kagglehub "
+            "(или положите data.csv в data/ вручную)"
+        ) from e
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    root = Path(kagglehub.dataset_download(KAGGLE_DATASET))
+    src = root / "data.csv"
+    if not src.exists():
+        hits = list(root.rglob("data.csv"))
+        if not hits:
+            raise FileNotFoundError(f"data.csv не найден внутри {root}")
+        src = hits[0]
+    path.write_bytes(src.read_bytes())
+    log(f"[load] скачано с Kaggle → {path}")
+    return path
+
+
 def _load(path=DATA_PATH):
-    path = Path(path)
+    path = _ensure_csv(Path(path))
+    df = pd.read_csv(path)
     if not path.exists():
         raise FileNotFoundError(f"Не найден {path}")
     df = pd.read_csv(path)

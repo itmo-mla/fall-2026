@@ -77,11 +77,11 @@ def _pred(w, b, X):
 
 
 def _fit_once(optimizer, w0, b0, X, y, X_val, y_val,
-              ordering, lam, use_l2, verbose, seed):
+              ordering, use_l2, verbose, seed):
     if optimizer == "momentum":
         return sgd_momentum(
             X, y, w0, b0,
-            lr=LR, mu=MU, lam=lam, use_l2=use_l2,
+            lr=LR, mu=MU, use_l2=use_l2,
             lr_decay=LR_DECAY,
             epochs=EPOCHS, ordering=ordering,
             rng=np.random.default_rng(seed),
@@ -93,7 +93,7 @@ def _fit_once(optimizer, w0, b0, X, y, X_val, y_val,
         )
     return steepest_descent(
         X, y, w0, b0,
-        lam=lam, use_l2=use_l2,
+        use_l2=use_l2,
         epochs=EPOCHS,
         X_val=X_val, y_val=y_val,
         print_every=PRINT_EVERY, verbose=verbose,
@@ -103,7 +103,7 @@ def _fit_once(optimizer, w0, b0, X, y, X_val, y_val,
     )
 
 
-def run_experiment(optimizer, init_kind, ordering, lam, use_l2, seed=SEED):
+def run_experiment(optimizer, init_kind, ordering, use_l2, seed=SEED):
     if init_kind == "random":
         w0, b0 = init_random(d, np.random.default_rng(seed))
         return _fit_once(optimizer, w0, b0, X_tr, y_tr, X_val, y_val,
@@ -111,11 +111,11 @@ def run_experiment(optimizer, init_kind, ordering, lam, use_l2, seed=SEED):
     if init_kind == "correlation":
         w0, b0 = init_correlation(X_tr, y_tr)
         return _fit_once(optimizer, w0, b0, X_tr, y_tr, X_val, y_val,
-                         ordering, lam, use_l2, True, seed)
+                         ordering, use_l2, True, seed)
     if init_kind == "multistart":
         def fit_for_ms(w0, b0, X, y, X_val=None, y_val=None, **kw):
             return _fit_once(optimizer, w0, b0, X, y, X_val, y_val,
-                             ordering, lam, use_l2, False, seed)
+                             ordering, use_l2, False, seed)
 
         return multistart(
             fit_for_ms, X_tr, y_tr, X_val, y_val,
@@ -169,7 +169,7 @@ for opt in OPTIMIZERS:
                 banner(f"opt={opt} | init={init_kind} "
                        f"| ordering={ordering} | L2={l2_tag}")
                 w, b, hist = run_experiment(
-                    opt, init_kind, ordering, lam, use_l2, seed=SEED,
+                    opt, init_kind, ordering, use_l2, seed=SEED
                 )
 
                 # Валидационные потери: полная цель и «чистая» data-потеря.

@@ -29,11 +29,12 @@ def _ordering(kind, X, y, w, b, rng):
 
 
 # SGD с инерцией
-def sgd_momentum(X, y, w0, b0, lr=0.01, mu=0.9, lam=1e-3, use_l2=True,
+def sgd_momentum(X, y, w0, b0, lr=0.01, mu=0.9, use_l2=True,
                  epochs=50, ordering="random", rng=None,
                  X_val=None, y_val=None, print_every=10, verbose=True,
                  lr_decay=0.0, ema_alphas=(0.9, 0.99, 0.999),
                  early_stop_delta=5e-3, early_stop_patience=1):
+    lam= 1e-3 if use_l2 else 0.0
     rng = rng or np.random.default_rng(0)
     w = w0.copy().astype(np.float64)
     b = float(b0)
@@ -112,11 +113,12 @@ def sgd_momentum(X, y, w0, b0, lr=0.01, mu=0.9, lam=1e-3, use_l2=True,
 
 
 # Скорейший градиентный спуск (полнобатчевый, точный шаг для квадратичной)
-def steepest_descent(X, y, w0, b0, lam=1e-3, use_l2=True,
+def steepest_descent(X, y, w0, b0, use_l2=True,
                      epochs=100, X_val=None, y_val=None, print_every=10, verbose=True,
                      ema_alphas=(0.9, 0.99, 0.999),
                      alpha_min=1e-12,
                      early_stop_delta=1e-3, early_stop_patience=1):
+    lam= 1e-3 if use_l2 else 0.0
     w = w0.copy().astype(np.float64)
     b = float(b0)
     history = []

@@ -13,7 +13,6 @@ class LinearClassifier:
         self.optimizer = optimizer
         self.ordering = ordering
         self.init = init
-        self.lam = lam
         self.lr = lr
         self.mu = mu
         self.epochs = epochs
@@ -36,7 +35,7 @@ class LinearClassifier:
         v = self.verbose if verbose is None else verbose
         fn = self._opt()
         kwargs = dict(
-            lam=self.lam, use_l2=self.use_l2,
+            use_l2=self.use_l2,
             epochs=self.epochs, verbose=v,
             print_every=self.print_every,
             ema_alphas=(0.9, 0.99, 0.999),
