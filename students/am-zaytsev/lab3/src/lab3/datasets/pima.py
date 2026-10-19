@@ -4,12 +4,13 @@ import pandas as pd
 
 # Column holding the class label — adjust if your CSV uses a different name
 LABEL_COL = "Outcome"
+url = "https://raw.githubusercontent.com/npradaschnor/Pima-Indians-Diabetes-Dataset/master/diabetes.csv"
 
 
 def download_dataset() -> pd.DataFrame:
-    # Download latest version
-    data_path = "~/.cache/kagglehub/datasets/jamaltariqcheema/pima-indians-diabetes-dataset/versions/1"
-    df = pd.read_csv(os.path.join(data_path, "diabetes.csv"))
+    print("[data] Loading dataset")
+    df = pd.read_csv(url)
+    print("[data] Dataset loaded")
     return df
 
 
