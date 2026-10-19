@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.mplconfig/
+.DS_Store
+*.csv
+
+venv/
