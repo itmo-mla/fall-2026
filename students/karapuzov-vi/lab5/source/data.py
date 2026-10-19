@@ -16,177 +16,165 @@ from sklearn.preprocessing import StandardScaler
 ROOT_DIR = Path(__file__).resolve().parents[1]
 PLOTS_DIR = ROOT_DIR / "plots"
 
-# Pima Indians Diabetes, OpenML data id 37. Не путать со sklearn.load_diabetes:
-# тот датасет — регрессия с непрерывной целью, здесь цель бинарная.
-OPENML_DATA_ID = 37
-
-TARGET_COLUMN = "diabetes"
-FEATURE_COLUMNS = ["preg", "plas", "pres", "skin", "insu", "mass", "pedi", "age"]
-# Ноль здесь не измерение, а пропуск в исходной таблице. У беременностей ноль бывает.
-ZERO_AS_MISSING = ["plas", "pres", "skin", "insu", "mass"]
-
+# Boston Housing, та же таблица, что раньше отдавал sklearn.datasets.load_boston.
+# В sklearn 1.2 эту функцию удалили, поэтому таблица берётся с OpenML.
+OPENML_NAME = "boston"
+OPENML_VERSION = 1
+PRICE_COLUMN = "MEDV"
+TARGET_COLUMN = "high_value"
+# Медиана MEDV по этой таблице. Цена в тысячах долларов, порог фиксированный.
+PRICE_THRESHOLD = 21.2
+# Столбец B — функция от доли чернокожих жителей. Из-за него load_boston удалили.
+DROPPED_COLUMNS = ["B"]
+FEATURE_COLUMNS = [
+    "CRIM",
+    "ZN",
+    "INDUS",
+    "CHAS",
+    "NOX",
+    "RM",
+    "AGE",
+    "DIS",
+    "RAD",
+    "TAX",
+    "PTRATIO",
+    "LSTAT",
+]
 PLOT_NAMES = {
-    "preg": "беременности, число",
-    "plas": "глюкоза, мг/дл",
-    "pres": "давление, мм рт. ст.",
-    "skin": "кожная складка, мм",
-    "insu": "инсулин, мкЕд/мл",
-    "mass": "ИМТ, кг/м²",
-    "pedi": "наследственность",
-    "age": "возраст, лет",
-    TARGET_COLUMN: "диабет",
+    "CRIM": "преступность на душу",
+    "ZN": "крупные участки, %",
+    "INDUS": "промзоны, %",
+    "CHAS": "у реки Чарльз",
+    "NOX": "оксиды азота",
+    "RM": "комнат в доме",
+    "AGE": "дома старше 1940, %",
+    "DIS": "до центров занятости",
+    "RAD": "доступ к шоссе",
+    "TAX": "налог на имущество",
+    "PTRATIO": "учеников на учителя",
+    "LSTAT": "низкий статус, %",
+    PRICE_COLUMN: "цена, тыс. $",
+    TARGET_COLUMN: "дороже медианы",
 }
-CLASS_NAMES = {0: "нет диабета", 1: "диабет"}
-STRONG_FEATURES = ["plas", "mass", "age", "insu"]
+CLASS_NAMES = {0: "не дороже медианы", 1: "дороже медианы"}
+STRONG_FEATURES = ["LSTAT", "RM", "PTRATIO", "AGE"]
 BOX_COLOR = "#4C72B0"
 POSITIVE_COLOR = "#C44E52"
 
 
 def load_raw_dataframe() -> pd.DataFrame:
-    """Таблица с нулями там, где в источнике не было измерения.
+    """506 районов Бостона. MEDV — медианная цена, high_value — она не ниже 21.2.
 
-    Цель уже 0/1: 1 — tested_positive. CSV в репозиторий не кладётся,
-    sklearn скачивает OpenML в свой кэш.
+    CSV в репозиторий не кладётся. load_boston в установленном sklearn уже нет.
     """
-    bunch = fetch_openml(data_id=OPENML_DATA_ID, as_frame=True, parser="auto")
-    frame = bunch.data.copy()
-    missing = [column for column in FEATURE_COLUMNS if column not in frame.columns]
+    bunch = fetch_openml(name=OPENML_NAME, version=OPENML_VERSION, as_frame=True, parser="auto")
+    frame = pd.DataFrame(bunch.data).copy()
+    expected = FEATURE_COLUMNS + DROPPED_COLUMNS
+    missing = [column for column in expected if column not in frame.columns]
     if missing:
-        raise RuntimeError(f"В OpenML id {OPENML_DATA_ID} нет колонок {missing}: {list(frame.columns)}")
+        raise RuntimeError(f"В OpenML boston нет колонок {missing}: {list(frame.columns)}")
 
-    labels = bunch.target.astype(str)
-    expected = {"tested_negative", "tested_positive"}
-    if set(labels.unique()) - expected:
-        raise RuntimeError(f"Неизвестные метки: {sorted(labels.unique())}")
+    price = pd.Series(bunch.target, index=frame.index, name=PRICE_COLUMN).astype(float)
+    if not np.isclose(float(price.median()), PRICE_THRESHOLD):
+        raise RuntimeError(
+            f"Медиана MEDV равна {float(price.median())}, ожидалась фиксированная {PRICE_THRESHOLD}."
+        )
 
-    frame = frame[FEATURE_COLUMNS].copy()
-    frame[TARGET_COLUMN] = (labels.to_numpy() == "tested_positive").astype(int)
-    return frame
-
-
-def _with_missing_zeros(df: pd.DataFrame) -> pd.DataFrame:
-    cleaned = df.copy()
-    for column in ZERO_AS_MISSING:
-        cleaned[column] = cleaned[column].replace(0, np.nan)
-    return cleaned
+    kept = frame[FEATURE_COLUMNS].astype(float).copy()
+    kept[PRICE_COLUMN] = price.to_numpy()
+    kept[TARGET_COLUMN] = (kept[PRICE_COLUMN] >= PRICE_THRESHOLD).astype(int)
+    return kept
 
 
 def run_eda(df: pd.DataFrame) -> None:
     PLOTS_DIR.mkdir(exist_ok=True)
-    cleaned = _with_missing_zeros(df)
-    features = cleaned[FEATURE_COLUMNS]
-    target = cleaned[TARGET_COLUMN]
+    features = df[FEATURE_COLUMNS]
+    target = df[TARGET_COLUMN]
+    price = df[PRICE_COLUMN]
 
-    print("\n=== Размер и пропуски ===")
-    print(f"объектов: {len(df)}, признаков: {len(FEATURE_COLUMNS)}")
-    print(f"пропусков в файле OpenML: {int(df.isna().sum().sum())}")
-    print(f"полных дубликатов строк: {int(df.duplicated().sum())}")
-    print("нули, которые считаем пропуском:")
-    for column in ZERO_AS_MISSING:
-        count = int((df[column] == 0).sum())
-        print(f"  {column}: {count} ({count / len(df):.1%})")
-    print(f"беременности с нулём (это измерение, не пропуск): {int((df['preg'] == 0).sum())}")
+    print("\n=== Размер ===")
+    print(f"районов: {len(df)}, признаков в матрице: {len(FEATURE_COLUMNS)}")
+    print(f"пропусков: {int(df.isna().sum().sum())}, полных дубликатов: {int(df.duplicated().sum())}")
+    print(f"столбец B в матрицу не входит")
+    print(f"цена у потолка 50: {int((price == 50).sum())} районов")
+    print(f"ZN равен нулю: {int((df['ZN'] == 0).sum())} ({(df['ZN'] == 0).mean():.1%}), это доля участков, не пропуск")
 
     print("\n=== Цель ===")
+    print(f"MEDV, тыс. $: min {price.min():.1f}, медиана {price.median():.1f}, max {price.max():.1f}")
+    print(f"класс 1: MEDV >= {PRICE_THRESHOLD}")
     counts = target.value_counts().sort_index()
     for label, count in counts.items():
         print(f"  {CLASS_NAMES[int(label)]}: {int(count)} ({count / len(df):.1%})")
 
-    print("\n=== Доля диабета, если измерение пропущено ===")
-    for column in ZERO_AS_MISSING:
-        missing = features[column].isna()
-        print(
-            f"  {column}: пропуск {target[missing].mean():.3f}, "
-            f"измерено {target[~missing].mean():.3f}, n_пропусков={int(missing.sum())}"
-        )
-
-    print("\n=== Std наблюдаемых значений до масштаба (ddof=0, нули-пропуски убраны) ===")
+    print("\n=== Std признаков до масштаба (ddof=0) ===")
     spread = features.std(ddof=0).sort_values(ascending=False)
     print(spread.round(3).to_string())
 
-    print("\n=== Медианы по классам, нули-пропуски не входят ===")
-    by_class = cleaned.groupby(TARGET_COLUMN)[FEATURE_COLUMNS].median()
+    print("\n=== Медианы признаков по классам ===")
+    by_class = df.groupby(TARGET_COLUMN)[FEATURE_COLUMNS].median()
     by_class.index = [CLASS_NAMES[int(label)] for label in by_class.index]
-    print(by_class.round(2).T.to_string())
+    print(by_class.round(3).T.to_string())
 
-    print("\n=== Корреляция Пирсона с диабетом, попарно по наблюдаемым ===")
-    pearson = features.corrwith(target).sort_values()
-    print(pearson.round(3).to_string())
+    print("\n=== Корреляция Пирсона с классом ===")
+    print(features.corrwith(target).sort_values().round(3).to_string())
+    print("\n=== Корреляция Пирсона с ценой MEDV ===")
+    print(features.corrwith(price).sort_values().round(3).to_string())
 
     feature_corr = features.corr().abs()
     upper = feature_corr.where(np.triu(np.ones(feature_corr.shape), k=1).astype(bool))
     print("\n=== Максимальная |корреляция| между признаками ===")
     print(upper.stack().sort_values(ascending=False).head(5).round(3).to_string())
 
-    negative_glucose = cleaned.loc[target == 0, "plas"].median()
-    positive = cleaned.loc[target == 1, "plas"].dropna()
-    below = float((positive < negative_glucose).mean())
-    print("\n=== Перекрытие по глюкозе ===")
-    print(f"медиана глюкозы без диабета: {negative_glucose:.1f}")
-    print(f"доля больных с глюкозой ниже этой медианы: {below:.1%}")
-
-    print("\n=== Выбросы по правилу 1.5 IQR среди наблюдаемых (не удаляем) ===")
-    for column in FEATURE_COLUMNS:
-        observed = features[column].dropna()
-        q1 = observed.quantile(0.25)
-        q3 = observed.quantile(0.75)
+    print("\n=== Выбросы по правилу 1.5 IQR (не удаляем) ===")
+    for column in FEATURE_COLUMNS + [PRICE_COLUMN]:
+        series = df[column]
+        q1 = series.quantile(0.25)
+        q3 = series.quantile(0.75)
         iqr = q3 - q1
-        mask = (features[column] < q1 - 1.5 * iqr) | (features[column] > q3 + 1.5 * iqr)
+        mask = (series < q1 - 1.5 * iqr) | (series > q3 + 1.5 * iqr)
         print(f"  {column}: {int(mask.sum())} ({mask.mean():.1%})")
 
+    _plot_price(price)
     _plot_class_balance(target)
-    _plot_missing(df)
     _plot_feature_scale(spread)
-    _plot_correlation(cleaned)
-    _plot_strong_features(cleaned)
-    _plot_glucose_bmi(cleaned)
+    _plot_correlation(df)
+    _plot_strong_features(df)
+    _plot_rooms_status(df)
     print(f"\nГрафики: {PLOTS_DIR}")
+
+
+def _plot_price(price: pd.Series) -> None:
+    fig, ax = plt.subplots(figsize=(8, 4.2))
+    ax.hist(price, bins=30, color=BOX_COLOR, label="число районов")
+    ax.axvline(PRICE_THRESHOLD, color=POSITIVE_COLOR, linewidth=1.6, label=f"медиана {PRICE_THRESHOLD}")
+    ax.set_title("Медианная цена жилья и порог класса")
+    ax.set_xlabel("MEDV, тысячи долларов")
+    ax.set_ylabel("Число районов")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(PLOTS_DIR / "01_price_threshold.png", dpi=120)
+    plt.close(fig)
 
 
 def _plot_class_balance(target: pd.Series) -> None:
     counts = target.value_counts().sort_index()
-    plot_df = pd.DataFrame(
-        {
-            "класс": [CLASS_NAMES[int(label)] for label in counts.index],
-            "число женщин": counts.to_numpy(),
-        }
-    )
-    fig, ax = plt.subplots(figsize=(6.5, 4))
-    bars = ax.bar(
-        plot_df["класс"],
-        plot_df["число женщин"],
-        color=[BOX_COLOR, POSITIVE_COLOR],
-    )
-    ax.set_title("Баланс классов: диабет у женщин Pima")
+    labels = [CLASS_NAMES[int(label)] for label in counts.index]
+    fig, ax = plt.subplots(figsize=(7.4, 4.2))
+    bars = ax.bar(labels, counts.to_numpy(), color=[BOX_COLOR, POSITIVE_COLOR])
+    ax.set_title(f"Класс: цена района не ниже медианы {PRICE_THRESHOLD}")
     ax.set_xlabel("Класс")
-    ax.set_ylabel("Число женщин")
-    ax.legend(bars, plot_df["класс"].tolist(), title="Класс")
+    ax.set_ylabel("Число районов")
+    ax.legend(bars, labels, title="Класс", loc="center left", bbox_to_anchor=(1.02, 0.5))
     fig.tight_layout()
-    fig.savefig(PLOTS_DIR / "01_class_balance.png", dpi=120)
-    plt.close(fig)
-
-
-def _plot_missing(df: pd.DataFrame) -> None:
-    rates = pd.Series({column: (df[column] == 0).mean() for column in ZERO_AS_MISSING})
-    rates = rates.sort_values()
-    fig, ax = plt.subplots(figsize=(8, 4))
-    labels = [PLOT_NAMES[column] for column in rates.index]
-    ax.barh(labels, rates.to_numpy(), color=BOX_COLOR, label="доля нулей в исходной таблице")
-    ax.set_xlim(0, 1)
-    ax.set_title("Нули, которые в этой таблице означают пропуск измерения")
-    ax.set_xlabel("Доля строк")
-    ax.set_ylabel("Признак")
-    ax.legend(loc="lower right")
-    fig.tight_layout()
-    fig.savefig(PLOTS_DIR / "02_missing_zeros.png", dpi=120)
+    fig.savefig(PLOTS_DIR / "02_class_balance.png", dpi=120)
     plt.close(fig)
 
 
 def _plot_feature_scale(spread: pd.Series) -> None:
     ordered = spread.sort_values()
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(8, 5))
     labels = [PLOT_NAMES[column] for column in ordered.index]
-    ax.barh(labels, ordered.to_numpy(), color=BOX_COLOR, label="std наблюдаемых значений")
+    ax.barh(labels, ordered.to_numpy(), color=BOX_COLOR, label="std по всей выборке")
     ax.set_title("Разброс признаков до стандартизации")
     ax.set_xlabel("Стандартное отклонение в исходных единицах")
     ax.set_ylabel("Признак")
@@ -196,30 +184,30 @@ def _plot_feature_scale(spread: pd.Series) -> None:
     plt.close(fig)
 
 
-def _plot_correlation(cleaned: pd.DataFrame) -> None:
-    renamed = cleaned.rename(columns=PLOT_NAMES)
-    order = [PLOT_NAMES[column] for column in FEATURE_COLUMNS + [TARGET_COLUMN]]
-    fig, ax = plt.subplots(figsize=(9, 7.5))
+def _plot_correlation(df: pd.DataFrame) -> None:
+    columns = FEATURE_COLUMNS + [TARGET_COLUMN]
+    renamed = df[columns].rename(columns=PLOT_NAMES)
+    fig, ax = plt.subplots(figsize=(11, 9))
     sns.heatmap(
-        renamed[order].corr(),
+        renamed.corr(),
         ax=ax,
         cmap="coolwarm",
         center=0,
         annot=True,
         fmt=".2f",
-        annot_kws={"size": 8},
+        annot_kws={"size": 7},
         cbar_kws={"label": "корреляция Пирсона"},
     )
-    ax.set_title("Корреляции признаков и диабета, пропуски не заполнены")
+    ax.set_title("Корреляции признаков и класса «дороже медианы»")
     fig.tight_layout()
     fig.savefig(PLOTS_DIR / "04_correlation.png", dpi=120)
     plt.close(fig)
 
 
-def _plot_strong_features(cleaned: pd.DataFrame) -> None:
-    plot_df = cleaned[STRONG_FEATURES + [TARGET_COLUMN]].copy()
+def _plot_strong_features(df: pd.DataFrame) -> None:
+    plot_df = df[STRONG_FEATURES + [TARGET_COLUMN]].copy()
     plot_df["класс"] = plot_df[TARGET_COLUMN].map(CLASS_NAMES)
-    class_order = ["нет диабета", "диабет"]
+    class_order = [CLASS_NAMES[0], CLASS_NAMES[1]]
     fig, axes = plt.subplots(2, 2, figsize=(11, 8))
     for ax, column in zip(axes.ravel(), STRONG_FEATURES):
         sns.boxplot(
@@ -237,11 +225,11 @@ def _plot_strong_features(cleaned: pd.DataFrame) -> None:
         ax.set_title(PLOT_NAMES[column])
         ax.set_xlabel("Класс")
         ax.set_ylabel(PLOT_NAMES[column])
-    fig.suptitle("Признаки с самой заметной связью с диабетом")
+    fig.suptitle("Признаки с самой сильной связью с классом цены")
     fig.legend(
         handles=[
-            Patch(facecolor=BOX_COLOR, label="нет диабета"),
-            Patch(facecolor=POSITIVE_COLOR, label="диабет"),
+            Patch(facecolor=BOX_COLOR, label=CLASS_NAMES[0]),
+            Patch(facecolor=POSITIVE_COLOR, label=CLASS_NAMES[1]),
         ],
         title="Класс",
         loc="upper center",
@@ -253,27 +241,27 @@ def _plot_strong_features(cleaned: pd.DataFrame) -> None:
     plt.close(fig)
 
 
-def _plot_glucose_bmi(cleaned: pd.DataFrame) -> None:
-    plot_df = cleaned.dropna(subset=["plas", "mass"]).copy()
+def _plot_rooms_status(df: pd.DataFrame) -> None:
+    plot_df = df.copy()
     plot_df["класс"] = plot_df[TARGET_COLUMN].map(CLASS_NAMES)
     fig, ax = plt.subplots(figsize=(7.5, 5.5))
     sns.scatterplot(
         data=plot_df,
-        x="plas",
-        y="mass",
+        x="RM",
+        y="LSTAT",
         hue="класс",
-        hue_order=["нет диабета", "диабет"],
+        hue_order=[CLASS_NAMES[0], CLASS_NAMES[1]],
         palette=[BOX_COLOR, POSITIVE_COLOR],
-        alpha=0.75,
+        alpha=0.8,
         s=28,
         ax=ax,
     )
-    ax.set_title("Глюкоза и ИМТ: облака классов пересекаются")
-    ax.set_xlabel(PLOT_NAMES["plas"])
-    ax.set_ylabel(PLOT_NAMES["mass"])
+    ax.set_title("Комнаты и доля жителей с низким статусом")
+    ax.set_xlabel(PLOT_NAMES["RM"])
+    ax.set_ylabel(PLOT_NAMES["LSTAT"])
     ax.legend(title="Класс")
     fig.tight_layout()
-    fig.savefig(PLOTS_DIR / "06_glucose_bmi.png", dpi=120)
+    fig.savefig(PLOTS_DIR / "06_rooms_lstat.png", dpi=120)
     plt.close(fig)
 
 
@@ -284,18 +272,18 @@ def prepare_data(
 ) -> dict:
     """Матрица для логистической регрессии.
 
-    Ноль в глюкозе, давлении, складке, инсулине и ИМТ заменяется на NaN.
-    Медиана для заполнения считается только на train. StandardScaler тоже
-    учится только на train и не трогает столбец единиц: свободный член
-    добавляется после масштаба. Метки остаются 0 и 1.
+    Класс уже посчитан по фиксированному порогу цены. Цена MEDV в матрицу
+    не входит: иначе модель списывает ответ. StandardScaler учится только
+    на train. Столбец единиц добавляется после масштаба.
     """
     if df is None:
         df = load_raw_dataframe()
 
-    cleaned = _with_missing_zeros(df)
-    y = cleaned[TARGET_COLUMN].astype(int)
+    y = df[TARGET_COLUMN].astype(int)
     y.name = TARGET_COLUMN
-    X = cleaned[FEATURE_COLUMNS].astype(float)
+    X = df[FEATURE_COLUMNS].astype(float)
+    if PRICE_COLUMN in X.columns or "B" in X.columns:
+        raise RuntimeError("В матрицу попала цена или столбец B.")
 
     X_train, X_test, y_train, y_test = train_test_split(
         X,
@@ -305,20 +293,9 @@ def prepare_data(
         random_state=random_state,
     )
 
-    medians = X_train.median()
-    X_train = X_train.fillna(medians)
-    X_test = X_test.fillna(medians)
-
     scaler = StandardScaler()
-    X_train_scaled = pd.DataFrame(
-        scaler.fit_transform(X_train),
-        columns=FEATURE_COLUMNS,
-    )
-    X_test_scaled = pd.DataFrame(
-        scaler.transform(X_test),
-        columns=FEATURE_COLUMNS,
-    )
-
+    X_train_scaled = pd.DataFrame(scaler.fit_transform(X_train), columns=FEATURE_COLUMNS)
+    X_test_scaled = pd.DataFrame(scaler.transform(X_test), columns=FEATURE_COLUMNS)
     X_train_design = _add_intercept(X_train_scaled)
     X_test_design = _add_intercept(X_test_scaled)
     y_train = y_train.reset_index(drop=True)
@@ -343,8 +320,7 @@ def prepare_data(
         "y_test": y_test,
         "feature_names": list(X_train_design.columns),
         "scaler": scaler,
-        "medians": medians,
-        "zero_as_missing": list(ZERO_AS_MISSING),
+        "price_threshold": PRICE_THRESHOLD,
     }
 
 
@@ -367,31 +343,27 @@ def as_numpy(data: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray
 def print_prepared_summary(data: dict) -> None:
     X_train = data["X_train"]
     X_test = data["X_test"]
-    features = X_train.drop(columns="intercept").to_numpy(dtype=float)
-    raw_train = features * data["scaler"].scale_ + data["scaler"].mean_
+    raw_train = X_train.drop(columns="intercept").to_numpy() * data["scaler"].scale_ + data["scaler"].mean_
     raw_design = np.column_stack([np.ones(len(raw_train)), raw_train])
     scaled_design = X_train.to_numpy(dtype=float)
+    raw_singular = np.linalg.svd(raw_design, compute_uv=False)
+    scaled_singular = np.linalg.svd(scaled_design, compute_uv=False)
 
     print("\n=== После подготовки ===")
     print(f"train: {X_train.shape}, test: {X_test.shape}")
+    print("порог MEDV:", data["price_threshold"])
     print("столбцы:", data["feature_names"])
-    print("медианы train, которыми заполнены пропуски:")
-    print(data["medians"].round(3).to_string())
     print("пропуски train/test:", int(X_train.isna().sum().sum()), int(X_test.isna().sum().sum()))
     print("max |среднее| признаков train:", float(np.max(np.abs(X_train.drop(columns="intercept").mean()))))
     feature_std = X_train.drop(columns="intercept").std(ddof=0)
     print("std признаков train ddof=0, min/max:", float(feature_std.min()), float(feature_std.max()))
     print(
-        "доля диабета train/test:",
+        "доля класса 1 train/test:",
         round(float(data["y_train"].mean()), 3),
         round(float(data["y_test"].mean()), 3),
     )
     print("метки train:", data["y_train"].value_counts().sort_index().to_dict())
     print("метки test:", data["y_test"].value_counts().sort_index().to_dict())
-    print("константа «всегда нет диабета», доля верных на test:", round(float(1 - data["y_test"].mean()), 3))
-
-    raw_singular = np.linalg.svd(raw_design, compute_uv=False)
-    scaled_singular = np.linalg.svd(scaled_design, compute_uv=False)
     print(
         "число обусловленности матрицы со свободным членом:",
         round(float(raw_singular.max() / raw_singular.min()), 1),
