@@ -69,7 +69,7 @@ sklearn: test accuracy: 0.8377
 | Модель                | Train accuracy | Test accuracy |
 |-----------------------|:--------------:|:-------------:|
 | Собственный SVM (RBF) | 0.8909         | 0.8377        |
-| sklearn `SVC` (RBF)   | 0.8958         | 0.8377        |
+| sklearn `SVC` (RBF)   | 0.8909         | 0.8377        |
 
 ## Вывод
 
