@@ -81,8 +81,27 @@ def main():
     
     print("\nАлгоритм отбора эталонов")
     k_control = int(0.2 * len(X_train)) 
-    prototypes_X, prototypes_y = prototype_selection_greedy_removal(X_train, y_train, k_control=k_control, tolerance=1e-7)
+    prototypes_X, prototypes_y, sizes_history, ccv_history = prototype_selection_greedy_removal(X_train, y_train, k_control=k_control, tolerance=1e-7)
     print(f"Итоговый размер множества эталонов: {len(prototypes_X)}/{len(X_train)}")
+
+    sizes_arr = np.array(sizes_history)
+    ccvs_arr = np.array(ccv_history)
+    
+    # Сортируем по возрастанию числа эталонов для корректного отображения слева направо
+    sort_idx = np.argsort(sizes_arr)
+    sizes_sorted = sizes_arr[sort_idx]
+    ccvs_sorted = ccvs_arr[sort_idx]
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(sizes_sorted, ccvs_sorted, marker='.', linestyle='-', color='purple')
+    
+    plt.title("Зависимость CCV от количества эталонов (полный скользящий контроль)")
+    plt.xlabel("Количество эталонов (размер подвыборки)")
+    plt.ylabel("Значение CCV")
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.savefig(os.path.join(reports_dir, "ccv_vs_prototypes_size.png"), dpi=150, bbox_inches='tight')
+    plt.close()
     
     is_prototype = np.zeros(len(X_train), dtype=bool)
     for i in range(len(X_train)):

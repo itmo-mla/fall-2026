@@ -121,6 +121,7 @@ def prototype_selection_greedy_removal(X, y, k_control=None, tolerance=1e-5):
 
     iteration = 0
 
+    sizes_history, ccv_history = [], []
     # Гарантируем, что у каждого эталона остаётся хотя бы k_control соседей
     while len(omega_idx) > k_control + 1:
         ccvs = np.empty(len(omega_idx))
@@ -138,6 +139,8 @@ def prototype_selection_greedy_removal(X, y, k_control=None, tolerance=1e-5):
         omega_idx = np.delete(omega_idx, best_j)
         current_ccv = ccvs[best_j]
         iteration += 1
+        ccv_history.append(current_ccv)
+        sizes_history.append(len(omega_idx))
 
         if iteration % 10 == 0:
             print(
@@ -148,4 +151,4 @@ def prototype_selection_greedy_removal(X, y, k_control=None, tolerance=1e-5):
 
     print(f"Final size: {len(omega_idx)}, CCV: {current_ccv:.6f}")
 
-    return X[omega_idx], y[omega_idx]
+    return X[omega_idx], y[omega_idx], sizes_history, ccv_history
