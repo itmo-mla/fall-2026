@@ -1,7 +1,7 @@
 # Lab 2 Karapuzov -> KNN implementation
 # Лабораторная 2. KNN, окно Парзена и отбор эталонов
 
-Датасет: Penguin Species (Kaggle), файл `species.csv`, 1000 строк. Цель — вид пингвина: Adelie, Chinstrap, Gentoo.
+Датасет: [Penguin Species](https://www.kaggle.com/datasets/srisyra02/penguin-species-dataset), 1000 строк. Таблица подгружается в `source/data.py` через `kagglehub`, локальный CSV не нужен (`pip install kagglehub`). Цель — вид пингвина: Adelie, Chinstrap, Gentoo.
 
 ## Данные
 

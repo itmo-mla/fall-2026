@@ -4,8 +4,19 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
+import kagglehub
+from kagglehub import KaggleDatasetAdapter
 
-df = pd.read_csv("species.csv")
+# Тот же Penguin Species, что раньше лежал в species.csv.
+# kagglehub сам скачивает таблицу, локальный файл в репозиторий класть не нужно.
+KAGGLE_DATASET = "srisyra02/penguin-species-dataset"
+DATA_FILE = "Penguin Species Prediction Dataset.csv"
+
+df = kagglehub.dataset_load(
+    KaggleDatasetAdapter.PANDAS,
+    KAGGLE_DATASET,
+    DATA_FILE,
+)
 
 print("\n=== Пропуски ===")
 print(df.isna().sum())
