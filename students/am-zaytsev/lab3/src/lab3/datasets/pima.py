@@ -1,7 +1,6 @@
-import os
-
+import kagglehub
 import pandas as pd
-
+import os
 # Column holding the class label — adjust if your CSV uses a different name
 LABEL_COL = "Outcome"
 url = "https://raw.githubusercontent.com/npradaschnor/Pima-Indians-Diabetes-Dataset/master/diabetes.csv"
@@ -9,7 +8,13 @@ url = "https://raw.githubusercontent.com/npradaschnor/Pima-Indians-Diabetes-Data
 
 def download_dataset() -> pd.DataFrame:
     print("[data] Loading dataset")
-    df = pd.read_csv(url)
+    try:
+        data_path = kagglehub.dataset_download(
+            "jamaltariqcheema/pima-indians-diabetes-dataset"
+        )
+    except:
+        data_path = os.path.expanduser('~/.cache/kagglehub/datasets/jamaltariqcheema/pima-indians-diabetes-dataset/versions/1/diabetes.csv')
+    df = pd.read_csv(data_path)
     print("[data] Dataset loaded")
     return df
 
