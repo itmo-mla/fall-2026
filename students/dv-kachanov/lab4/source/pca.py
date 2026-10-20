@@ -1,6 +1,32 @@
 import numpy as np
 
 
+def center(F, mu=None):
+    """Центрирование признаков: F0 = F - 1 mu^T.
+
+    Если mu не задано, используется среднее по столбцам (по объектам).
+    Возвращает (F0, mu), чтобы то же среднее можно было применить к контролю.
+    """
+    F = np.asarray(F, dtype=float)
+    if mu is None:
+        mu = F.mean(axis=0)
+    mu = np.asarray(mu, dtype=float)
+    return F - mu, mu
+
+
+def align_signs(U, U_ref):
+    """Согласование знаков столбцов U с эталонными U_ref.
+
+    SVD определяется с точностью до знака столбца, поэтому перед сравнением
+    столбцы U умножаются на sign(u_j^T u_ref_j).
+    """
+    U = np.asarray(U, dtype=float)
+    U_ref = np.asarray(U_ref, dtype=float)
+    signs = np.sign(np.sum(U * U_ref, axis=0))
+    signs[signs == 0] = 1.0
+    return U * signs, signs
+
+
 def scatter_matrix(F):
     """Рассеяние S = F^T F (без делителя)."""
     F = np.asarray(F, dtype=float)
