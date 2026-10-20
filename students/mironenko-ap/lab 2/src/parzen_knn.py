@@ -24,7 +24,7 @@ class ParzenKNN:
         self.k = int(k)
         self.kernel = kernel
 
-    # обучение
+    # -------------------- обучение --------------------
     def fit(self, X, y, h=None):
         """
         h: необязательный предвычисленный массив ширин той же длины, что X.
@@ -48,7 +48,7 @@ class ParzenKNN:
         kth_vals = np.partition(sq, kth - 1, axis=1)[:, kth - 1]
         return np.sqrt(np.maximum(kth_vals, 1e-24))
 
-    #  предсказание
+    # -------------------- предсказание --------------------
     def _log_weights(self, x):
         """
         log[ (1/h_i^d) * exp(-||x - x_i||² / (2 h_i²)) ] для всех обучающих i.
