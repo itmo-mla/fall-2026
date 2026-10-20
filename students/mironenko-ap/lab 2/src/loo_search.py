@@ -14,17 +14,10 @@ def _logsumexp(a):
     return m + np.log(np.exp(a - m).sum())
 
 
-def loo_error(X, y, k_values, verbose=True):
-    """
-    LOO-ошибка для каждого k.
-
-    Ускорение: полная матрица квадратов расстояний считается один раз,
-    и ширины h_i вычисляются один раз на полной выборке. Для n=1143
-    исключение одной точки не меняет h_i на сколько-нибудь значимую
-    величину — это стандартное приближение (аналогично делает sklearn
-    в KernelDensity). Полный пересчёт h на каждой свёртке дал бы O(n³)
-    и был бы неоправданно медленным.
-    """
+def loo_error(X,
+              y,
+              k_values,
+              verbose=True):
     n, d = X.shape
     classes = np.unique(y)
     n_classes = len(classes)

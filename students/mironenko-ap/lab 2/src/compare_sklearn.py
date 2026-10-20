@@ -21,13 +21,6 @@ def run_compare(out_dir: Path,
                 grouping: str = "4",
                 k_values=(1, 2, 3, 5, 7, 10, 15),
                 random_state: int = 42):
-    """
-    Сравнивает три модели при разных k:
-        - ParzenKNN (наш, окно переменной ширины, sample-point)
-        - sklearn KNN (weights='uniform')
-        - sklearn KNN (weights='distance')
-    Сохраняет таблицу в report/figures/compare.csv
-    """
     from sklearn.neighbors import KNeighborsClassifier
 
     df = load_raw()
@@ -41,7 +34,7 @@ def run_compare(out_dir: Path,
 
     rows = []
     for k in k_values:
-        # --- наш ---
+        # натив
         our = ParzenKNN(k=k).fit(X_tr, y_tr)
         y_our = our.predict(X_te)
         m = _full_metrics(y_te, y_our, n_classes)
@@ -50,7 +43,7 @@ def run_compare(out_dir: Path,
             "accuracy": m["accuracy"], "macro_f1": m["macro_f1"],
         })
 
-        # --- sklearn uniform / distance ---
+        #  sklearn uniform / distance
         for w in ("uniform", "distance"):
             sk = KNeighborsClassifier(n_neighbors=k, weights=w)
             sk.fit(X_tr, y_tr)
@@ -64,7 +57,7 @@ def run_compare(out_dir: Path,
     res = pd.DataFrame(rows)
     res.to_csv(out_dir / "compare.csv", index=False)
 
-    print("\n=== Сравнение (test, macro-F1) ===")
+    print("\n Сравнение (test, macro-F1)")
     print(res.pivot(index="k", columns="model",
                     values="macro_f1").round(4).to_string())
     print(f"\nСохранено: {out_dir/'compare.csv'}")
