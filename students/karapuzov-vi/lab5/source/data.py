@@ -16,15 +16,11 @@ from sklearn.preprocessing import StandardScaler
 ROOT_DIR = Path(__file__).resolve().parents[1]
 PLOTS_DIR = ROOT_DIR / "plots"
 
-# Boston Housing, та же таблица, что раньше отдавал sklearn.datasets.load_boston.
-# В sklearn 1.2 эту функцию удалили, поэтому таблица берётся с OpenML.
 OPENML_NAME = "boston"
 OPENML_VERSION = 1
 PRICE_COLUMN = "MEDV"
 TARGET_COLUMN = "high_value"
-# Медиана MEDV по этой таблице. Цена в тысячах долларов, порог фиксированный.
 PRICE_THRESHOLD = 21.2
-# Столбец B — функция от доли чернокожих жителей. Из-за него load_boston удалили.
 DROPPED_COLUMNS = ["B"]
 FEATURE_COLUMNS = [
     "CRIM",
@@ -63,10 +59,6 @@ POSITIVE_COLOR = "#C44E52"
 
 
 def load_raw_dataframe() -> pd.DataFrame:
-    """506 районов Бостона. MEDV — медианная цена, high_value — она не ниже 21.2.
-
-    CSV в репозиторий не кладётся. load_boston в установленном sklearn уже нет.
-    """
     bunch = fetch_openml(name=OPENML_NAME, version=OPENML_VERSION, as_frame=True, parser="auto")
     frame = pd.DataFrame(bunch.data).copy()
     expected = FEATURE_COLUMNS + DROPPED_COLUMNS
@@ -270,12 +262,6 @@ def prepare_data(
     test_size: float = 0.2,
     random_state: int = 42,
 ) -> dict:
-    """Матрица для логистической регрессии.
-
-    Класс уже посчитан по фиксированному порогу цены. Цена MEDV в матрицу
-    не входит: иначе модель списывает ответ. StandardScaler учится только
-    на train. Столбец единиц добавляется после масштаба.
-    """
     if df is None:
         df = load_raw_dataframe()
 
