@@ -20,15 +20,18 @@ def preprocess_target(target):
 
 
 class LogReg:
-    def __init__(self):
+    def __init__(self, h=1, tol=0.01, max_iteration=1_000):
         self._w = None
+        self.h = h
+        self.tol = tol
+        self.max_iteration = max_iteration
 
     def loss(self, x, y):
         margin = y * x @ self._w
 
         return np.log(1 + np.exp(-margin))
 
-    def train(self, x, y, h=1, tol=0.01, max_iteration=1_000):
+    def train(self, x, y):
         preprocess_target(y)
         check_shapes(x, y)
         loss_list = []
@@ -36,19 +39,19 @@ class LogReg:
         loss_value = self.loss(x, y)
         loss_list.append(loss_value)
         prev_sig = None
-        for iter_id in range(max_iteration):
+        for iter_id in range(self.max_iteration):
             margin = y * x @ self._w
             sig = sigmoid(margin)  # [..., np.newaxis]
             if prev_sig is not None:
                 d_sig = np.mean(np.abs(prev_sig - sig) / np.abs(sig))
-                if d_sig < tol:
+                if d_sig < self.tol:
                     break
             prev_sig = sig
             x_wave = x * sig
             y_star = np.sqrt((1 - sig) / sig) * y
 
             dw = -np.linalg.inv(x_wave.T @ x_wave) @ x_wave.T @ y_star
-            self._w -= h * dw
+            self._w -= self.h * dw
 
             loss_value = self.loss(x, y)
             loss_list.append(loss_value)
