@@ -54,3 +54,6 @@ class LogReg:
             loss_list.append(loss_value)
 
         return loss_list
+
+    def eval(self, x):
+        return ((x @ self.w) > 0) * 2 - 1
