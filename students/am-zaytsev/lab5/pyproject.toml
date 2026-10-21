@@ -16,3 +16,6 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-root = "source"
+
+[project.scripts]
+main = "lab5.main:main"
