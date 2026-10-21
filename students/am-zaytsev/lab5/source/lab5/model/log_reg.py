@@ -34,6 +34,7 @@ class LogReg:
                 d_sig = np.mean(np.abs(prev_sig - sig) / np.abs(sig))
                 if d_sig < stop_d_sig:
                     break
+            prev_sig = sig
             x_wave = x * sig
             y_star = np.sqrt((1 - sig) / sig) * y
 
