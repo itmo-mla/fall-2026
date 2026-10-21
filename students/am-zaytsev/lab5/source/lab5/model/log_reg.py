@@ -11,6 +11,14 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
+def preprocess_target(target):
+    if len(target.shape) == 1:
+        target = target[..., np.newaxis]
+    if target.min() != -1:
+        target = target * 2 - 1
+    return target
+
+
 class LogReg:
     def __init__(self):
         self.w = None
@@ -20,14 +28,15 @@ class LogReg:
 
         return np.log(1 + np.exp(-margin))
 
-    def train(self, x, y, h=1, stop_d_sig=0.01):
+    def train(self, x, y, h=1, stop_d_sig=0.01, max_iteration=1_000):
+        preprocess_target(y)
         check_shapes(x, y)
         loss_list = []
         self.w = np.linalg.inv(x.T @ x) @ x.T @ y
         loss_value = self.loss(x, y)
         loss_list.append(loss_value)
         prev_sig = None
-        while True:
+        for iter_id in range(max_iteration):
             margin = y * x @ self.w
             sig = sigmoid(margin)  # [..., np.newaxis]
             if prev_sig is not None:
