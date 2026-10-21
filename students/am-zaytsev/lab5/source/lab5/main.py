@@ -12,15 +12,20 @@ def main():
 
     acc_sk = model_sk.score(X_test, y_test[:, 0])
     cm_sk = confusion_matrix(model_sk.predict(X_test), y_test)
+    print(f"{acc_sk=}")
+    print(f"{cm_sk=}")
 
     model_my = LogReg(max_iteration=10_000, h=1, tol=1e-4)
     model_my.train(X_train, y_train)
     acc_my = (model_my.eval(X_test) == y_test).mean()
     cm_my = confusion_matrix(model_my.eval(X_test), y_test)
+    print(f"{acc_my=}")
+    print(f"{cm_my=}")
 
     results_compare_acc = (
         model_sk.predict(X_test) == model_my.eval(X_test)[:, 0]
     ).mean()
+    print(f"{results_compare_acc=}")
 
 
 if __name__ == "__main__":
