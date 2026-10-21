@@ -28,7 +28,7 @@ class LogReg:
 
         return np.log(1 + np.exp(-margin))
 
-    def train(self, x, y, h=1, stop_d_sig=0.01, max_iteration=1_000):
+    def train(self, x, y, h=1, tol=0.01, max_iteration=1_000):
         preprocess_target(y)
         check_shapes(x, y)
         loss_list = []
@@ -41,7 +41,7 @@ class LogReg:
             sig = sigmoid(margin)  # [..., np.newaxis]
             if prev_sig is not None:
                 d_sig = np.mean(np.abs(prev_sig - sig) / np.abs(sig))
-                if d_sig < stop_d_sig:
+                if d_sig < tol:
                     break
             prev_sig = sig
             x_wave = x * sig
