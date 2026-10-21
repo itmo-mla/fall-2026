@@ -47,7 +47,7 @@ class LogReg:
                 if d_sig < self.tol:
                     break
             prev_sig = sig
-            x_wave = x * sig
+            x_wave = x * np.sqrt((1 - sig) * sig)
             y_star = np.sqrt((1 - sig) / sig) * y
 
             dw = -np.linalg.inv(x_wave.T @ x_wave) @ x_wave.T @ y_star
