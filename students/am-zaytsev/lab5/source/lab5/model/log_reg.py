@@ -29,7 +29,7 @@ class LogReg:
         prev_sig = None
         while True:
             margin = y * x @ self.w
-            sig = sigmoid(margin)[..., np.newaxis]
+            sig = sigmoid(margin)  # [..., np.newaxis]
             if prev_sig is not None:
                 d_sig = np.mean(np.abs(prev_sig - sig) / np.abs(sig))
                 if d_sig < stop_d_sig:
