@@ -31,13 +31,15 @@ class LogReg:
 
         return np.sum(np.log(1 + np.exp(-margin)))
 
-    def train(self, x, y):
+    def train(self, x, y, x_test=None, y_test=None):
         preprocess_target(y)
         check_shapes(x, y)
         loss_list = []
         self._w = np.linalg.inv(x.T @ x) @ x.T @ y
-        loss_value = self.loss(x, y)
-        loss_list.append(loss_value)
+        loss_list.append({"train": self.loss(x, y)})
+
+        if x_test is not None and y_test is not None:
+            loss_list[-1]["test"] = self.loss(x_test, y_test)
         prev_sig = None
         for iter_id in range(self.max_iteration):
             margin = y * x @ self._w
@@ -54,7 +56,9 @@ class LogReg:
             self._w -= self.h * dw
 
             loss_value = self.loss(x, y)
-            loss_list.append(loss_value)
+            loss_list.append({"train": loss_value})
+            if x_test is not None and y_test is not None:
+                loss_list[-1]["test"] = self.loss(x_test, y_test)
 
         return loss_list
 
