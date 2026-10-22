@@ -25,6 +25,7 @@ module-root = "source"
 dev = [
     "ipykernel>=7.4.0",
     "plotly>=7.1.0",
+    "ruff>=0.17.1",
 ]
 
 [project.scripts]
