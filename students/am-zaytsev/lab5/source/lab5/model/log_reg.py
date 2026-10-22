@@ -29,7 +29,7 @@ class LogReg:
     def loss(self, x, y):
         margin = y * x @ self._w
 
-        return np.log(1 + np.exp(-margin))
+        return np.sum(np.log(1 + np.exp(-margin)))
 
     def train(self, x, y):
         preprocess_target(y)
