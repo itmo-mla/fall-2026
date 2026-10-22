@@ -13,10 +13,11 @@ def print_confusion_matrix(cm) -> None:
         print(f"  {cells}")
 
 
-def print_result(name: str, accuracy: float, cm) -> None:
+def print_result(name: str, train_accuracy: float, test_accuracy: float, cm) -> None:
     print(name)
-    print(f"  accuracy: {accuracy:.4f}")
-    print("  confusion matrix:")
+    print(f"  Train: accuracy: {train_accuracy:.4f}")
+    print(f"  Test: accuracy: {test_accuracy:.4f}")
+    print("  Test: confusion matrix:")
     print_confusion_matrix(cm)
     print()
 
@@ -31,15 +32,19 @@ def main():
     )
     model_sk.fit(X_train, y_train[:, 0])
 
-    acc_sk = model_sk.score(X_test, y_test[:, 0])
+    acc_test_sk = model_sk.score(X_test, y_test[:, 0])
+    acc_train_sk = model_sk.score(X_train, y_train[:, 0])
     cm_sk = confusion_matrix(model_sk.predict(X_test), y_test)
-    print_result("sklearn LogisticRegression", acc_sk, cm_sk)
+    print_result("sklearn LogisticRegression", acc_test_sk, acc_train_sk, cm_sk)
 
     model_my = LogReg(max_iteration=10_000, h=1, tol=1e-4)
     model_my.train(X_train, y_train)
-    acc_my = (model_my.eval(X_test) == y_test).mean()
+    acc_test_my = (model_my.eval(X_test) == y_test).mean()
+    acc_train_my = (model_my.eval(X_train) == y_train).mean()
     cm_my = confusion_matrix(model_my.eval(X_test), y_test)
-    print_result("custom LogReg (Newton-Raphson / IRLS)", acc_my, cm_my)
+    print_result(
+        "custom LogReg (Newton-Raphson / IRLS)", acc_test_my, acc_train_my, cm_my
+    )
 
     results_compare_acc = (
         model_sk.predict(X_test) == model_my.eval(X_test)[:, 0]
