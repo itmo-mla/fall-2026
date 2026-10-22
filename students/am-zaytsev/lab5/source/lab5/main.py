@@ -1,3 +1,4 @@
+import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
 
@@ -22,7 +23,12 @@ def print_result(name: str, accuracy: float, cm) -> None:
 
 def main():
     X_train, X_test, y_train, y_test = load_dataset()
-    model_sk = LogisticRegression(max_iter=10_000)
+    model_sk = LogisticRegression(
+        solver="newton-cholesky",  # closest to Newton/IRLS
+        C=np.inf,  # no L2 regularization
+        tol=1e-4,
+        max_iter=10_000,
+    )
     model_sk.fit(X_train, y_train[:, 0])
 
     acc_sk = model_sk.score(X_test, y_test[:, 0])
