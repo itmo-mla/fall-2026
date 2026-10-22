@@ -16,7 +16,7 @@ $$
 
 Метод Ньютона-Рафсона:
 $$
-w_{t+1} = w_t - h (H)^{-1} \cdot J = w_t + h \left( \frac{\partial^2 L}{\partial w_j \partial w_k} \right)^{-1} \left(\frac{\partial L}{\partial w_j}\right)^T
+w_{t+1} = w_t - h (H)^{-1} \cdot J = w_t - h \left( \frac{\partial^2 L}{\partial w_j \partial w_k} \right)^{-1} \left(\frac{\partial L}{\partial w_j}\right)^T
 $$
 
 ---
