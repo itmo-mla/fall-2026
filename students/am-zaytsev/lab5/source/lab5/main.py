@@ -54,7 +54,7 @@ def main():
     print(f"Models prediction match: {results_compare_acc:.2%}")
 
     draw_loss(loss_list)
-    plt.savefig("./images/loss_curves.png", dpi=300, bbox_inches="tight")
+    plt.savefig("./images/loss_curves.png", dpi=150, bbox_inches="tight")
 
 
 if __name__ == "__main__":
