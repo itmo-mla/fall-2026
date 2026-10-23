@@ -7,8 +7,6 @@ from sklearn.model_selection import train_test_split
 import kagglehub
 from kagglehub import KaggleDatasetAdapter
 
-# Тот же Penguin Species, что раньше лежал в species.csv.
-# kagglehub сам скачивает таблицу, локальный файл в репозиторий класть не нужно.
 KAGGLE_DATASET = "srisyra02/penguin-species-dataset"
 DATA_FILE = "Penguin Species Prediction Dataset.csv"
 

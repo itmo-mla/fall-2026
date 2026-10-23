@@ -8,17 +8,14 @@ def knn_predict(X_train,y_train,x_test,k=1):
     most_common = Counter(k_nearest_labels).most_common()
     return most_common[0][0]
 
-#Евклидово расстояние 
 def euclid_distance(x1,x2):
     return np.sqrt(np.sum((x1 - x2)**2))
 
 
-#Ядро активация весов
 def gausian_kernel(distance,h):
     z = distance/h
     return np.exp(-z**2/2)
 
-#Пархена окно
 def parzen_predict(X_train,y_train,x_test,k):
     distances = [euclid_distance(x_test,row) for row in X_train]
     k_indices = np.argsort(distances)[:k]
@@ -32,7 +29,6 @@ def parzen_predict(X_train,y_train,x_test,k):
         scores[label] = scores.get(label,0.0) + weight
     return max(scores,key=scores.get)
 
-#Ошибку считаем
 def loo_cv(X,y,k,model_func):
     n = len(y)
     errors = 0
@@ -45,27 +41,74 @@ def loo_cv(X,y,k,model_func):
         errors += int(y_pred != y_true)
     return errors / n
 
-#Отбор эталонов
-def condensed_nn(X,y,max_iter=50,random_state=42):
-    rng = np.random.default_rng(random_state)
+def pairwise_distances(X):
+    diff = X[:,None,:] - X[None,:,:]
+    dist = np.sqrt(np.sum(diff * diff,axis=-1))
+    np.fill_diagonal(dist,np.inf)
+    return dist
+
+def compactness_pi(dist,y,omega,control_length):
+    omega = np.asarray(list(omega),dtype=int)
     n = len(y)
-    selected = [int(rng.integers(0,n))]
-    chosen = set(selected)
-    changed = True
-    iteration = 0
-    while changed and iteration < max_iter:
-        changed = False
-        for i in range(n):
-            if i in chosen:
+    pi = np.ones(control_length,dtype=float)
+    if len(omega) == 0:
+        return pi
+    dsub = dist[:,omega]
+    order = np.argsort(dsub,axis=1)
+    for m in range(control_length):
+        if m >= len(omega):
+            pi[m] = 1.0
+            continue
+        nn = omega[order[:,m]]
+        nn_dist = dsub[np.arange(n),order[:,m]]
+        wrong = np.ones(n,dtype=bool)
+        has = np.isfinite(nn_dist)
+        wrong[has] = y[nn[has]] != y[has]
+        pi[m] = float(wrong.mean())
+    return pi
+
+def ccv_risk(dist,y,omega,control_length=1):
+    if control_length != 1:
+        raise ValueError("длина контроля в этой работе L=1")
+    pi = compactness_pi(dist,y,omega,control_length)
+    R = np.array([1.0])
+    return float(np.sum(pi * R)), pi
+
+def select_prototypes_ccv(X,y,control_length=1):
+    if control_length != 1:
+        raise ValueError("отбор записан для L=1, критерий Π(1,Ω)")
+    dist = pairwise_distances(np.asarray(X,dtype=float))
+    y = np.asarray(y)
+    n = len(y)
+    chosen = np.zeros(n,dtype=bool)
+    nn_dist = np.full(n,np.inf)
+    wrong = np.ones(n,dtype=bool)
+    selected = []
+    history = [1.0]
+    while True:
+        best_c = None
+        best_err = int(wrong.sum())
+        for c in range(n):
+            if chosen[c]:
                 continue
-            y_pred = knn_predict(X[selected],y[selected],X[i],k=1)
-            if y_pred != y[i]:
-                selected.append(i)
-                chosen.add(i)
-                changed = True
-        iteration += 1
-    selected = np.array(selected)
-    return X[selected], y[selected]
+            closer = dist[:,c] < nn_dist
+            closer[c] = False
+            new_wrong = y != y[c]
+            new_err = int(wrong.sum() - wrong[closer].sum() + new_wrong[closer].sum())
+            if new_err < best_err:
+                best_err = new_err
+                best_c = c
+        if best_c is None:
+            break
+        c = best_c
+        closer = dist[:,c] < nn_dist
+        closer[c] = False
+        nn_dist[closer] = dist[closer,c]
+        wrong[closer] = y[closer] != y[c]
+        chosen[c] = True
+        selected.append(c)
+        history.append(best_err / n)
+    return np.array(selected,dtype=int), history, dist
 
 def check_knn_and_parzen():
     X_synthetic = np.array([[0.0],[1.0],[1.1]])
@@ -75,7 +118,7 @@ def check_knn_and_parzen():
         (np.array([0.2]),2,0,1),
         (np.array([0.0]),1,0,0),
     ]
-    print("=== синтетический пример ===")
+    print("=== синтетический пример: KNN считает головы, Парзен суммирует веса ===")
     print("точки: класс 0 в 0.0, класс 1 в 1.0 и 1.1")
     for query,k,expected_knn,expected_parzen in synthetic_cases:
         knn_pred = knn_predict(X_synthetic,y_synthetic,query,k)
