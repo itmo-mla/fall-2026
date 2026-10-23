@@ -4,22 +4,24 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_margins(margins_by_title, path):
+def plot_margins(margins_by_title, path, delta=1.0):
     fig, axes = plt.subplots(1, len(margins_by_title), figsize=(6 * len(margins_by_title), 4))
     axes = np.atleast_1d(axes)
     for ax, (title, M) in zip(axes, margins_by_title.items()):
         M = np.sort(M)
         idx = np.arange(len(M))
         zones = [
-            (M < 0, "red", "ошибки, M < 0"),
-            ((M >= 0) & (M < 1), "gold", "пограничные, 0 ≤ M < 1"),
-            (M >= 1, "green", "надёжные, M ≥ 1"),
+            (M <= -delta, "red", f"шумовые, M ≤ -{delta:g}"),
+            (np.abs(M) < delta, "gold", f"пограничные, |M| < {delta:g}"),
+            (M >= delta, "green", f"надёжные, M ≥ {delta:g}"),
         ]
         for mask, color, label in zones:
             ax.fill_between(idx, 0, M, where=mask, color=color, alpha=0.35,
                             step="mid", label=f"{label}: {mask.sum()}")
         ax.plot(idx, M, color="black", linewidth=1.2)
         ax.axhline(0, color="gray", linewidth=1)
+        for level in (-delta, delta):
+            ax.axhline(level, color="gray", linewidth=0.8, linestyle="--")
         ax.set_title(title)
         ax.set_xlabel("объекты, упорядоченные по возрастанию отступа")
         ax.set_ylabel("отступ M = ⟨w, x⟩·y")
@@ -45,8 +47,8 @@ def plot_training(models_by_label, path, title, per_epoch=False):
     ax_q.set_ylabel("Q в конце эпохи (лог. шкала)" if per_epoch else "рекуррентная оценка Q (лог. шкала)")
     ax_q.set_title("Сходимость функционала Q")
     ax_acc.set_xlabel("эпоха")
-    ax_acc.set_ylabel("accuracy на тесте")
-    ax_acc.set_title("Качество на тестовой выборке")
+    ax_acc.set_ylabel("accuracy на валидации")
+    ax_acc.set_title("Качество на валидационной выборке")
     ax_q.grid(alpha=0.3)
     ax_acc.grid(alpha=0.3)
     fig.suptitle(title)

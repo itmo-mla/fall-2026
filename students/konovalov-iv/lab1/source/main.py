@@ -23,10 +23,10 @@ def timed_fit(model, *args):
 
 def main():
     IMAGES.mkdir(exist_ok=True)
-    X_train, X_test, y_train, y_test, _ = load_data()
-    print(f"train: {X_train.shape}, test: {X_test.shape}, "
+    X_train, X_val, X_test, y_train, y_val, y_test, _ = load_data()
+    print(f"train: {X_train.shape}, val: {X_val.shape}, test: {X_test.shape}, "
           f"доля класса +1: {np.mean(y_train == 1):.2f}")
-    fit_args = (X_train, y_train, X_test, y_test)
+    fit_args = (X_train, y_train, X_val, y_val)
 
     models, times = {}, {}
 
@@ -35,7 +35,7 @@ def main():
 
     start = time.perf_counter()
     best, risks = multistart(X_train, y_train, n_starts=10, seed=SEED,
-                             X_val=X_test, y_val=y_test, **PARAMS)
+                             X_val=X_val, y_val=y_val, **PARAMS)
     models["мультистарт (10 запусков)"] = best
     times["мультистарт (10 запусков)"] = time.perf_counter() - start
     print(f"мультистарт: риск min={min(risks):.4f}, max={max(risks):.4f}, лучший seed={best.seed}")
@@ -60,26 +60,29 @@ def main():
     for name, model in reference.items():
         _, times[name] = timed_fit(model, X_train[:, 1:], y_train)
 
-    results = {}
-    for name, model in models.items():
-        results[name] = classification_metrics(y_test, model.predict(X_test))
-    for name, model in reference.items():
-        results[name] = classification_metrics(y_test, model.predict(X_test[:, 1:]))
+    def predict(name, X):
+        return models[name].predict(X) if name in models else reference[name].predict(X[:, 1:])
 
-    print("\n| Модель | Accuracy | Precision | Recall | F1 | Q (train) | Эпох | Время, с |")
-    print("|---|---|---|---|---|---|---|---|")
+    val_results = {name: classification_metrics(y_val, predict(name, X_val)) for name in times}
+    results = {name: classification_metrics(y_test, predict(name, X_test)) for name in times}
+
+    print("\n| Модель | Accuracy (val) | F1 (val) | Accuracy | Precision | Recall | F1 | Q (train) | Эпох | Время, с |")
+    print("|---|---|---|---|---|---|---|---|---|---|")
     for name, r in results.items():
         if name in models:
             epochs = len(models[name].history["Q_epoch"])
             risk = f"{models[name].empirical_risk(X_train, y_train):.3f}"
         else:
-            epochs, risk = "—", "—"
-        print(f"| {name} | {r['accuracy']:.3f} | {r['precision']:.3f} | {r['recall']:.3f} "
-              f"| {r['f1']:.3f} | {risk} | {epochs} | {times[name]:.2f} |")
+            epochs, risk = "-", "-"
+        v = val_results[name]
+        print(f"| {name} | {v['accuracy']:.3f} | {v['f1']:.3f} | {r['accuracy']:.3f} | {r['precision']:.3f} "
+              f"| {r['recall']:.3f} | {r['f1']:.3f} | {risk} | {epochs} | {times[name]:.2f} |")
 
-    best_name = max(models, key=lambda n: (results[n]["f1"], results[n]["accuracy"]))
-    print(f"\nлучшая собственная модель: {best_name}")
-    print("матрица ошибок [[TN, FP], [FN, TP]]:")
+    best_name = max(models, key=lambda n: (val_results[n]["f1"], val_results[n]["accuracy"]))
+    print(f"\nлучшая собственная модель по валидации: {best_name}")
+    print(f"её качество на test: accuracy={results[best_name]['accuracy']:.3f}, "
+          f"F1={results[best_name]['f1']:.3f}")
+    print("матрица ошибок на test [[TN, FP], [FN, TP]]:")
     print(confusion_matrix(y_test, models[best_name].predict(X_test)))
 
     corr = models["корреляция"]
