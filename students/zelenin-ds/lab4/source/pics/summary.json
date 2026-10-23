@@ -1,0 +1,18 @@
+{
+  "dataset": "avikasliwal/used-cars-price-prediction (train-data.csv)",
+  "n_rows": 6019,
+  "n_features": 59,
+  "k_90": 43,
+  "k_95": 47,
+  "k_99": 51,
+  "kaiser": 33,
+  "effective_rank": 46.94778227321513,
+  "equivalence": {
+    "n_features": 59,
+    "max_components_diff": 4.163336342344337e-16,
+    "max_explained_variance_diff": 0.0,
+    "max_ratio_diff": 0.0,
+    "max_projection_diff": 3.197442310920451e-14,
+    "max_reconstruction_diff": 1.176836406102666e-14
+  }
+}
