@@ -14,6 +14,27 @@ def center(F, mu=None):
     return F - mu, mu
 
 
+def standardize(F, mu=None, sigma=None):
+    """Стандартизация признаков: F0 = (F - 1 mu^T) diag(sigma)^{-1}.
+
+    Центрирование и масштабирование выполняются по обучающей выборке:
+    mu_j — среднее, sigma_j — стандартное отклонение (ddof=0, как в
+    sklearn.preprocessing.StandardScaler). Те же mu и sigma применяются
+    к контролю, чтобы не было утечки. Возвращает (F0, mu, sigma).
+    """
+    F = np.asarray(F, dtype=float)
+    if mu is None:
+        mu = F.mean(axis=0)
+    mu = np.asarray(mu, dtype=float)
+    if sigma is None:
+        sigma = F.std(axis=0, ddof=0)
+    sigma = np.asarray(sigma, dtype=float)
+    if np.any(sigma == 0):
+        raise ValueError("Нельзя масштабировать признак с нулевым разбросом")
+    F_centered, _ = center(F, mu)
+    return F_centered / sigma, mu, sigma
+
+
 def align_signs(U, U_ref):
     """Согласование знаков столбцов U с эталонными U_ref.
 

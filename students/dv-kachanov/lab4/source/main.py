@@ -11,6 +11,7 @@ import numpy as np
 from sklearn.datasets import load_diabetes
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 from pca import (
     align_signs,
@@ -27,6 +28,7 @@ from pca import (
     scatter_matrix,
     spectrum,
     squared_error,
+    standardize,
 )
 
 from plots import (
@@ -49,30 +51,36 @@ ell, n = F_raw.shape
 k = Fc_raw.shape[0]
 print(f"l = {ell}, k = {k}, n = {n}")
 
-# Центрирование: среднее считается по обучающей выборке и применяется к контролю
-F, mu = center(F_raw)
-Fc, _ = center(Fc_raw, mu)
+# Стандартизация: среднее и стандартное отклонение считаются по обучающей
+# выборке и применяются к контролю. Масштабирование — наряду с центрированием.
+F, mu, sigma = standardize(F_raw)
+Fc, _, _ = standardize(Fc_raw, mu, sigma)
 ybar = float(np.mean(y_raw))
 y = y_raw - ybar
 yc = yc_raw - ybar
 
 print("mu (средние признаков по обучению) =", mu)
-print("Макс. |среднее по столбцам F| после центрирования:",
+print("sigma (стандартные отклонения по обучению) =", sigma)
+print("Макс. |среднее по столбцам F| после стандартизации:",
       float(np.max(np.abs(F.mean(axis=0)))))
+print("Макс. |std по столбцам F - 1| после стандартизации:",
+      float(np.max(np.abs(F.std(axis=0, ddof=0) - 1.0))))
 print("ybar =", ybar)
 print("Макс. |среднее y| после центрирования:", float(np.abs(y.mean())))
 
-# Спектр S = F^T F и SVD F = V D U^T (F уже центрирована)
+# Спектр S = F^T F и SVD F = V D U^T (F уже стандартизована)
 S = scatter_matrix(F)
 lam = spectrum(F)
 V, d, U, lam_svd = lecture_svd(F)
-print("lambda (центрированные данные):", lam)
+print("lambda (стандартизованные данные):", lam)
 print("D (сингулярные числа, диагональ):", d)
 print("||F||^2 = tr S =", float(np.trace(S)))
+print("Проверка tr S = l * n:", float(np.trace(S)), "vs", ell * n)
 
-# Для сравнения: спектр без центрирования
-lam_uncentered = spectrum(F_raw)
-print("lambda (без центрирования, для сравнения):", lam_uncentered)
+# Для сравнения: спектр только с центрированием, без масштабирования
+F_centered_only, _ = center(F_raw)
+lam_centered_only = spectrum(F_centered_only)
+print("lambda (только центрирование, для сравнения):", lam_centered_only)
 
 lam_diff = float(np.max(np.abs(lam - lam_svd)))
 print("Макс. отклонение lambda (eig(S) vs SVD):", lam_diff)
@@ -102,25 +110,31 @@ tail = float(np.sum(lam[m:]))
 print("||G U^T - F||^2 (прямо) =", abs_err)
 print("lambda_{m+1} + ... + lambda_n (хвост) =", tail)
 
-# Эталонный PCA из sklearn: он сам центрирует данные, поэтому сравниваем
-# с нашей центрированной реализацией.
-ref = PCA(n_components=n, svd_solver="full").fit(F_raw)
+# Эталонный PCA из sklearn: StandardScaler выполняет центрирование и
+# масштабирование, после чего PCA ищет главные компоненты уже в
+# стандартизованном пространстве.
+scaler = StandardScaler().fit(F_raw)
+F_ref = scaler.transform(F_raw)
+Fc_ref = scaler.transform(Fc_raw)
+ref = PCA(n_components=n, svd_solver="full").fit(F_ref)
 lam_ref = ref.explained_variance_ * (ell - 1)
 d_ref = ref.singular_values_
 U_ref = ref.components_.T
 U_aligned, signs = align_signs(U, U_ref)
-G_ref = ref.transform(F_raw) * signs
+G_ref = ref.transform(F_ref) * signs
 Gc = Fc @ Um
-Gc_ref = ref.transform(Fc_raw)[:, :m] * signs[:m]
-Fhat_ref = ref.inverse_transform(ref.transform(F_raw))
-Fhat_raw = Fhat + mu
+Gc_ref = ref.transform(Fc_ref)[:, :m] * signs[:m]
+Fhat_ref = ref.inverse_transform(ref.transform(F_ref))
 Fhat_full = reconstruct(principal_components(F, U, n), U, n)
-ref_m = PCA(n_components=m, svd_solver="full").fit(F_raw)
-Fhat_ref_m = ref_m.inverse_transform(ref_m.transform(F_raw))
+ref_m = PCA(n_components=m, svd_solver="full").fit(F_ref)
+Fhat_ref_m = ref_m.inverse_transform(ref_m.transform(F_ref))
 errors_ref = relative_errors(lam_ref)
 
 print("\n=== Сравнение с эталонным PCA (sklearn.decomposition.PCA) ===")
-print("Макс. |mu - ref.mean_| =", float(np.max(np.abs(mu - ref.mean_))))
+print("Макс. |mu - scaler.mean_| =", float(np.max(np.abs(mu - scaler.mean_))))
+print("Макс. |sigma - scaler.scale_| =", float(np.max(np.abs(sigma - scaler.scale_))))
+print("Макс. |F - scaler.transform(F_raw)| =",
+      float(np.max(np.abs(F - F_ref))))
 print("Макс. |lambda - lambda_ref| =", float(np.max(np.abs(lam - lam_ref))))
 print("Макс. |d - ref.singular_values_| =", float(np.max(np.abs(d - d_ref))))
 print("Макс. |E_m - E_m^ref| =", float(np.max(np.abs(np.array(errors) - np.array(errors_ref)))))
@@ -129,10 +143,10 @@ print("Макс. |U - U_ref| (после согласования знаков) 
 print("Макс. |G - G_ref| =", float(np.max(np.abs(G - G_ref[:, :m]))))
 print("Макс. |G' - G'_ref| (контроль) =",
       float(np.max(np.abs(Gc - Gc_ref))))
-print("Макс. |Fhat_full + mu - ref.inverse_transform(...)| =",
-      float(np.max(np.abs(Fhat_full + mu - Fhat_ref))))
-print("Макс. |Fhat_m + mu - ref_m.inverse_transform(...)| =",
-      float(np.max(np.abs(Fhat_raw - Fhat_ref_m))))
+print("Макс. |Fhat_full - ref.inverse_transform(...)| =",
+      float(np.max(np.abs(Fhat_full - Fhat_ref))))
+print("Макс. |Fhat_m - ref_m.inverse_transform(...)| =",
+      float(np.max(np.abs(Fhat - Fhat_ref_m))))
 print("Макс. |explained_variance_ratio - ref| =",
       float(np.max(np.abs(lam / np.sum(lam) - ref.explained_variance_ratio_))))
 print("Макс. относительное отклонение lambda:",
@@ -146,10 +160,10 @@ plot_reference_comparison(
 )
 
 # Гребневая регрессия: Q_tau(alpha) = ||F alpha - y||^2 + tau ||alpha||^2
-# F и y центрированы, поэтому свободный член равен ybar.
+# F стандартизована, y центрирован, поэтому свободный член равен ybar.
 TAU = 1.0
 alpha_star = ridge_alpha_star(F, y, TAU)
-print("\n=== Регрессия на центрированных данных ===")
+print("\n=== Регрессия на стандартизованных данных ===")
 print("alpha*_tau =", alpha_star)
 print("Q_tau(alpha*_tau) на обучении =", ridge_functional(F, y, alpha_star, TAU))
 print("Q(alpha*_tau, X^k) = ||F' alpha*_tau - y'||^2 на контроле =",

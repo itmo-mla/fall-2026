@@ -12,7 +12,7 @@ def plot_scree(lam, errors, m, eps, output_path):
     axes[0].axvline(m, linestyle="--", label=f"m = {m}")
     axes[0].set_xlabel("Номер компоненты j")
     axes[0].set_ylabel("Собственное значение lambda_j матрицы S = F^T F")
-    axes[0].set_title("Спектр матрицы S (центрированные данные)")
+    axes[0].set_title("Спектр матрицы S (стандартизованные данные)")
     axes[0].grid()
     axes[0].legend()
 
@@ -103,7 +103,7 @@ def plot_reconstruction(errors, m, output_path):
     plt.axvline(m, linestyle="--", label=f"m = {m}")
     plt.xlabel("Размерность m")
     plt.ylabel("Относительная ошибка E_m")
-    plt.title("Ошибка восстановления (центрированные данные)")
+    plt.title("Ошибка восстановления (стандартизованные данные)")
     plt.grid()
     plt.legend()
     plt.tight_layout()
