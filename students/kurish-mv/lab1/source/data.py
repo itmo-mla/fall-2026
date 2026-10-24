@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-DATA_PATH = Path(__file__).parent / "pima-indians-diabetes.csv"
+DATA_PATH = Path(__file__).parent / "dataset" / "pima-indians-diabetes.csv"
 COLUMNS = ["preg", "plas", "pres", "skin", "test", "mass", "pedi", "age", "class"]
 TARGET = "class"
 ZERO_AS_MISSING = ["plas", "pres", "skin", "test", "mass"]

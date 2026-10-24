@@ -1,10 +1,7 @@
 import kagglehub
-from kagglehub import KaggleDatasetAdapter
 
-file_path = ""
+file_path = "students\\kurish-mv\\lab1\\source\\dataset"
 
-df = kagglehub.load_dataset(
-  KaggleDatasetAdapter.PANDAS,
-  "kumargh/pimaindiansdiabetescsv",
-  file_path,
-)
+path = kagglehub.dataset_download("kumargh/pimaindiansdiabetescsv", output_dir=file_path)
+
+print("Path to dataset files:", path)
