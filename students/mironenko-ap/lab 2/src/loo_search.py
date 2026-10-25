@@ -1,4 +1,13 @@
 """Подбор k методом leave-one-out (LOO) + график эмпирического риска."""
+
+"""
+Замечание :
+    В LOO исключённый объект остаётся в расчёте ширин окон других объектов: h заранее вычислен по всей выборке, затем только маскируется. 
+    Для sample-point окна удаление объекта может менять h у соседей и их веса, особенно при малом k. 
+    Пересчитывать/корректно обновлять ширины без контрольного объекта; 
+    текущее приближение не является заявленным LOO.
+"""
+
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -15,16 +24,7 @@ def _logsumexp(a):
 
 
 def loo_error(X, y, k_values, verbose=True):
-    """
-    LOO-ошибка для каждого k.
 
-    Ускорение: полная матрица квадратов расстояний считается один раз,
-    и ширины h_i вычисляются один раз на полной выборке. Для n=1143
-    исключение одной точки не меняет h_i на сколько-нибудь значимую
-    величину — это стандартное приближение (аналогично делает sklearn
-    в KernelDensity). Полный пересчёт h на каждой свёртке дал бы O(n³)
-    и был бы неоправданно медленным.
-    """
     n, d = X.shape
     classes = np.unique(y)
     n_classes = len(classes)
@@ -36,21 +36,46 @@ def loo_error(X, y, k_values, verbose=True):
     errors = np.zeros(len(k_values))
     for ki, k in enumerate(k_values):
         k = int(k)
-        # h_i = sqrt(k-е наименьшее расстояние), self исключён
+        if k > n - 2:
+            raise ValueError(
+                f"k={k} слишком большой для LOO при n={n}" #словили ошибку
+            )
+
         sq_k = sq_full.copy()
         np.fill_diagonal(sq_k, np.inf)
-        kth_vals = np.partition(sq_k, k - 1, axis=1)[:, k - 1]
-        h = np.sqrt(np.maximum(kth_vals, 1e-24))
-        log_h_d = d * np.log(h)
+
+        # k-е и (k+1)-е наименьшие расстояния от каждой точки
+        part = np.partition(sq_k, [k - 1, k], axis=1)
+        kth_sq    = part[:, k - 1]
+        kplus1_sq = part[:, k]
+
+        # c_m — сколько точек j != m лежат не дальше kth_m
+        count_le_kth = np.sum(sq_k <= kth_sq[:, None], axis=1)
+
+        h_kth    = np.sqrt(np.maximum(kth_sq,    1e-24))
+        h_kplus1 = np.sqrt(np.maximum(kplus1_sq, 1e-24))
+        log_h_kth_d    = d * np.log(h_kth)
+        log_h_kplus1_d = d * np.log(h_kplus1)
+
+        # changed_mat[i, m] = True, если при исключении i ширина h_m сдвигается на (k+1)-ю статистику.
+        changed_mat = ((sq_full <= kth_sq[None, :])
+                       & (count_le_kth[None, :] == k))
+        np.fill_diagonal(changed_mat, False)
 
         cnt = 0
         for i in range(n):
+            changed   = changed_mat[i]
+            h_m       = np.where(changed, h_kplus1, h_kth)
+            log_h_m_d = np.where(changed, log_h_kplus1_d, log_h_kth_d)
+
             mask = np.ones(n, dtype=bool)
             mask[i] = False
-            sq_i = sq_full[i, mask]
-            h_m = h[mask]
-            log_w = -log_h_d[mask] - 0.5 * sq_i / (h_m ** 2)
-            y_m = y[mask]
+
+            sq_i       = sq_full[i, mask]
+            h_mi       = h_m[mask]
+            log_h_mi_d = log_h_m_d[mask]
+            log_w = -log_h_mi_d - 0.5 * sq_i / (h_mi ** 2)
+            y_m   = y[mask]
 
             log_scores = np.empty(n_classes)
             for j, c in enumerate(classes):
@@ -65,11 +90,43 @@ def loo_error(X, y, k_values, verbose=True):
     return errors
 
 
+def loo_error_naive(X, y, k_values):
+    """Наивный O(n^3) LOO для сверки корректности."""
+    n, d = X.shape
+    classes = np.unique(y)
+    n_classes = len(classes)
+    errors = np.zeros(len(k_values))
+
+    for ki, k in enumerate(k_values):
+        k = int(k)
+        cnt = 0
+        for i in range(n):
+            mask = np.ones(n, dtype=bool)
+            mask[i] = False
+            Xm, ym = X[mask], y[mask]
+
+            diffs = Xm[:, None, :] - Xm[None, :, :]
+            sq = np.einsum("ijk,ijk->ij", diffs, diffs)
+            np.fill_diagonal(sq, np.inf)
+            kth = np.partition(sq, k - 1, axis=1)[:, k - 1]
+            h = np.sqrt(np.maximum(kth, 1e-24))
+
+            di = Xm - X[i]
+            sq_i = np.einsum("ij,ij->i", di, di)
+            log_w = -d * np.log(h) - 0.5 * sq_i / (h ** 2)
+
+            log_scores = np.empty(n_classes)
+            for j, c in enumerate(classes):
+                log_scores[j] = _logsumexp(log_w[ym == c])
+            if classes[np.argmax(log_scores)] != y[i]:
+                cnt += 1
+        errors[ki] = cnt / n
+    return errors
+
+
 def run_loo_search(out_dir: Path,
-                   grouping: str = "4",
                    k_values=(1, 2, 3, 5, 7, 10, 15, 20, 25, 30),
                    max_points=None):
-    df = load_raw()
     X, y, classes = make_xy(load_raw())
     X_std, _ = standardize(X, X.copy())
 

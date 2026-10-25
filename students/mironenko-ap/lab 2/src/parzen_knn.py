@@ -37,8 +37,6 @@ class ParzenKNN:
     def _log_weights(self, x):
         """
         log[ (1/h_i^d) * exp(-||x - x_i||² / (2 h_i²)) ] для всех обучающих i.
-        Работаем в логах — иначе при d=11 величины 1/h_i^d выходят за пределы
-        представимости float64.
         """
         diffs = self.X - x
         sq = np.einsum("ij,ij->i", diffs, diffs)

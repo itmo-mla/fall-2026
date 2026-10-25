@@ -21,9 +21,9 @@ def load_raw():
 
 def make_xy(data, grouping=None):
     """
-    Извлекает X, y, classes из объекта sklearn.
-    grouping не используется (3 класса уже сбалансированы),
-    но параметр оставлен для совместимости сигнатуры.
+        Извлекает X, y, classes из объекта sklearn.
+        grouping не используется (3 класса уже сбалансированы),
+        но параметр оставлен для совместимости сигнатуры.
     """
     X = np.asarray(data.data, dtype=float)
     y = np.asarray(data.target, dtype=int)

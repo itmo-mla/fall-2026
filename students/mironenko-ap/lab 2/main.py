@@ -48,7 +48,7 @@ def stage_viz():
     from src.plots import run_visualization
 
     drawn = False
-    for tag in ("cnn", "enn"):
+    for tag in ("cnn", "enn", "ccv"):  # +ccv
         proto_path = FIGURES / f"prototypes_{tag}_idx.npy"
         if proto_path.exists():
             idx = np.load(proto_path)
@@ -58,7 +58,6 @@ def stage_viz():
                 title_suffix=f"with_{tag}_prototypes",
             )
             drawn = True
-
     if not drawn:
         run_visualization(out_dir=FIGURES, title_suffix="all")
 
