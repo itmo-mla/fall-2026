@@ -1,0 +1,26 @@
+[check_gamma] отчёт: E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab3\results\report\check_gamma.txt
+[check_gamma] аргументы: {'regenerate': False, 'C': 1.0, 'kernel': 'rbf', 'gammas': [0.005, 0.01, 0.03, 0.1, 0.3, 1.0]}
+train: (398, 30), test: (171, 30)
+PCA explained variance: 0.643
+kernel=rbf, C=1.0
+
+   gamma |  smo acc   SV | scipy acc   SV | sklearn acc   SV | diff(smo-ref)
+----------------------------------------------------------------------------
+   0.005 |   0.9591   97 |    0.9591   97 |      0.9591   98 |       +0.0000
+   0.010 |   0.9591   84 |    0.9591   84 |      0.9591   84 |       +0.0000
+   0.030 |   0.9708   89 |    0.9708   89 |      0.9708   89 |       +0.0000
+   0.100 |   0.9591  176 |    0.9591  176 |      0.9591  175 |       +0.0000
+   0.300 |   0.9298  317 |    0.9298  317 |      0.9298  317 |       +0.0000
+   1.000 |   0.6257  398 |    0.6257  398 |      0.6257  398 |       +0.0000
+
+Лучшее (по sklearn): gamma=0.030 (sklearn acc=0.9708, smo acc=0.9708)
+
+Итог по расхождениям:
+  gamma=0.005   smo-sklearn=+0.0000  scipy-sklearn=+0.0000  smo-scipy=+0.0000
+  gamma=0.010   smo-sklearn=+0.0000  scipy-sklearn=+0.0000  smo-scipy=+0.0000
+  gamma=0.030   smo-sklearn=+0.0000  scipy-sklearn=+0.0000  smo-scipy=+0.0000
+  gamma=0.100   smo-sklearn=+0.0000  scipy-sklearn=+0.0000  smo-scipy=+0.0000
+  gamma=0.300   smo-sklearn=+0.0000  scipy-sklearn=+0.0000  smo-scipy=+0.0000
+  gamma=1.000   smo-sklearn=+0.0000  scipy-sklearn=+0.0000  smo-scipy=+0.0000
+
+[check_gamma] готово. отчёт сохранён: E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab3\results\report\check_gamma.txt
