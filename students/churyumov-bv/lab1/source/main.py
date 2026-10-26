@@ -38,22 +38,27 @@ def load_data() -> pd.DataFrame:
 
 
 def prepare_data(df: pd.DataFrame, test_size: float = 0.3):
-    df = df.copy()
     zeros = ["plas", "pres", "skin", "insu", "mass"]
-    for col in zeros:
-        df[col] = df[col].replace(0, np.nan)
-        df[col] = df[col].fillna(df[col].median())
-
     feature_cols = ["preg", "plas", "pres", "skin", "insu", "mass", "pedi", "age"]
-    X = df[feature_cols].to_numpy(dtype=float)
-    y = np.where(df["class"] == "tested_positive", 1.0, -1.0)
 
-    mu, sigma = X.mean(axis=0), X.std(axis=0)
+    df_train, df_test = train_test_split(df, test_size=test_size, shuffle=False)
+    df_train, df_test = df_train.copy(), df_test.copy()
+    for col in zeros:
+        df_train[col] = df_train[col].replace(0, np.nan)
+        df_test[col] = df_test[col].replace(0, np.nan)
+        median = df_train[col].median()
+        df_train[col] = df_train[col].fillna(median)
+        df_test[col] = df_test[col].fillna(median)
+
+    X_train = df_train[feature_cols].to_numpy(dtype=float)
+    X_test = df_test[feature_cols].to_numpy(dtype=float)
+    y_train = np.where(df_train["class"] == "tested_positive", 1.0, -1.0)
+    y_test = np.where(df_test["class"] == "tested_positive", 1.0, -1.0)
+
+    mu, sigma = X_train.mean(axis=0), X_train.std(axis=0)
     sigma[sigma == 0] = 1.0
-    X = (X - mu) / sigma
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, shuffle=False
-    )
+    X_train = (X_train - mu) / sigma
+    X_test = (X_test - mu) / sigma
 
     def add_bias(X):
         return np.hstack([np.ones((X.shape[0], 1)), X])
@@ -145,9 +150,9 @@ def full_Q(w, X, y, l2):
 
 # 8. реализовать предъявление объектов мо модулю отступа;
 def margin_based_sampling_probs(w: np.ndarray, X: np.ndarray, y: np.ndarray,
-                                 eps: float = 1e-3) -> np.ndarray:
-    M = margin(w, X, y)
-    weights = loss(M) + eps
+                                 tau: float = 1.0) -> np.ndarray:
+    M = np.abs(margin(w, X, y))
+    weights = np.exp(-M / tau)
     return weights / weights.sum()
 
 def sgd_momentum(X, y, w0, n_iter=4000, eta=0.05, gamma=0.9, l2=0.01,
@@ -181,29 +186,40 @@ def sgd_momentum(X, y, w0, n_iter=4000, eta=0.05, gamma=0.9, l2=0.01,
     return w, np.array(Q_history)
 
 # 7. реализовать скорейший градиентный спуск;
-def backtracking_line_search(f, f0, g, eta0=5.0, shrink=0.5, c1=1e-4, max_steps=50):
-    eta = eta0
-    grad_norm_sq = g @ g
-    for _ in range(max_steps):
-        if f(eta) <= f0 - c1 * eta * grad_norm_sq:
-            return eta
-        eta *= shrink
-    return eta
+def quadratic_loss(M: np.ndarray) -> np.ndarray:
+    return (1.0 - M) ** 2
+
+
+def quadratic_Q(w: np.ndarray, X: np.ndarray, y: np.ndarray, l2: float) -> float:
+    return float(quadratic_loss(margin(w, X, y)).mean() + 0.5 * l2 * np.sum(w[1:] ** 2))
+
+
+def quadratic_gradient(w: np.ndarray, X: np.ndarray, y: np.ndarray, l2: float) -> np.ndarray:
+    # dL/dw = -2 (1 - M) y x, усреднение по выборке, L2 без свободного члена
+    r = 1.0 - margin(w, X, y)
+    g = -2.0 * (X.T @ (y * r)) / len(y)
+    g[1:] += l2 * w[1:]
+    return g
+
+
+def optimal_step(X: np.ndarray, g: np.ndarray, l2: float) -> float:
+    # Q квадратична по w, поэтому h* = argmin_h Q(w - h g) находится точно:
+    # h* = |g|^2 / (g^T H g), H = (2/n) X^T X + l2 I (без свободного члена)
+    Xg = X @ g
+    den = 2.0 * float(Xg @ Xg) / len(Xg) + l2 * float(g[1:] @ g[1:])
+    return float(g @ g) / den if den > 1e-18 else 0.0
+
 
 # 7. реализовать скорейший градиентный спуск;
-def steepest_descent(X, y, w0, n_iter=200, l2=0.01, eta_max=5.0):
+def steepest_descent(X, y, w0, n_iter=500, l2=0.01):
     w = w0.copy()
-    Q_history = [full_Q(w, X, y, l2)]
+    Q_history = [quadratic_Q(w, X, y, l2)]
     for t in range(n_iter):
-        g = gradient(w, X, y, l2=l2)
+        g = quadratic_gradient(w, X, y, l2)
         if np.linalg.norm(g) < 1e-8:
             break
-        Q_w = Q_history[-1]
-        eta_star = backtracking_line_search(
-            lambda eta: full_Q(w - eta * g, X, y, l2), Q_w, g, eta0=eta_max
-        )
-        w = w - eta_star * g
-        Q_history.append(full_Q(w, X, y, l2))
+        w = w - optimal_step(X, g, l2) * g
+        Q_history.append(quadratic_Q(w, X, y, l2))
     return w, np.array(Q_history)
 
 
@@ -355,7 +371,7 @@ if __name__ == "__main__":
     plt.figure(figsize=(7, 4))
     plt.plot(hist_corr, label="инициализация весов через корреляцию")
     plt.plot(hist_mb, label="со случайным предъявлением и с п.8")
-    plt.plot(hist_steep, label="метод наискорейшего спуска")
+    plt.plot(hist_steep, label="метод наискорейшего спуска (квадратичная потеря)")
     plt.xlabel("Итерация")
     plt.ylabel("Оценка качества")
     plt.title("Кривые обучения")
