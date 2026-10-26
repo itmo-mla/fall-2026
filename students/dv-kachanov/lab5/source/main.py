@@ -1,4 +1,5 @@
 import sys
+import warnings
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -10,6 +11,7 @@ OUTPUT_DIR = Path(__file__).resolve().parent.parent
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_breast_cancer
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.model_selection import train_test_split
@@ -57,7 +59,11 @@ F_train, F_test, y01_train, y01_test = train_test_split(
 y_tilde_train = to_signed_labels(y01_train)
 y_tilde_test = to_signed_labels(y01_test)
 
-# Матрица данных лекции F = (f_j(x_i)) размера l x n, БЕЗ bias-столбца.
+# Матрица данных лекции F = (f_j(x_i)) размера l x n.
+# Свободный член добавлен константным признаком f_0(x_i) = 1 (первый столбец).
+F_train = np.hstack([np.ones((F_train.shape[0], 1)), F_train])
+F_test = np.hstack([np.ones((F_test.shape[0], 1)), F_test])
+
 print("Размер F_train:", F_train.shape)
 print("Размер F_test:", F_test.shape)
 
@@ -84,8 +90,23 @@ plot_convergence(newton_history, irls_history, OUTPUT_DIR / "convergence.png")
 
 # показать сопоставление с эталонной реализацией;
 
-reference_model = LogisticRegression(C=1.0, solver="lbfgs", tol=1e-8, max_iter=20000)
-reference_model.fit(F_train, y01_train)
+# Эталон получает ту же матрицу F (с константным признаком) и без регуляризации,
+# поэтому постановки полностью совпадают.
+reference_model = LogisticRegression(
+    penalty=None,
+    fit_intercept=False,
+    solver="lbfgs",
+    tol=1e-8,
+    max_iter=20000,
+)
+with warnings.catch_warnings():
+    # Выборка линейно разделима, поэтому оценка максимального правдоподобия
+    # без регуляризации не имеет конечного решения: lbfgs останавливается
+    # по лимиту вычислений.
+    warnings.filterwarnings("ignore", category=ConvergenceWarning)
+    reference_model.fit(F_train, y01_train)
+
+print("Итераций sklearn (lbfgs):", int(reference_model.n_iter_[0]))
 
 reference_pred = reference_model.predict(F_test)
 own_pred = predict01(F_test, w_newton)
