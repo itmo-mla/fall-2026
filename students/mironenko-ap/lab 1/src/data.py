@@ -45,13 +45,19 @@ def _ensure_csv(path: Path) -> Path:
 
 def _load(path=DATA_PATH):
     path = _ensure_csv(Path(path))
-    df = pd.read_csv(path)
     if not path.exists():
         raise FileNotFoundError(f"Не найден {path}")
+
     df = pd.read_csv(path)
-    # На всякий случай убираем безымянную колонку-индекс, если она есть.
-    if df.columns[0].startswith("Unnamed") or df.columns[0] == "":
-        df = df.iloc[:, 1:]
+
+    # Убираем безымянные колонки-индексы в любом месте датасета.
+    unnamed_cols = [
+        col for col in df.columns
+        if str(col).startswith("Unnamed") or str(col).strip() == ""
+    ]
+    if unnamed_cols:
+        df = df.drop(columns=unnamed_cols)
+
     log(f"[load] {path.name}: {df.shape}")
     return df
 

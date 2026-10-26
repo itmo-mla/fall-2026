@@ -9,7 +9,7 @@
   min / max      : -2.2952 / 5.7893
   доля m < 0     : 0.4065
   доля m < 1     : 0.9077
-[plot] E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab1\results\figures\step1_margin_before.png
+[plot] E:\githab\fall-2026\students\mironenko-ap\lab 1\results\figures\step1_margin_before.png
 ШАГ 2: Проверка градиента (конечные разности)
 [grad-check] относительная ошибка=1.10e-10
 ШАГ 3: Рекуррентная оценка (EMA): демонстрация
@@ -174,7 +174,7 @@ SGD-sklearn (squared_error)
   Эталон. min / max      : -0.8064 / 2.4137
   Эталон. доля m < 0     : 0.0119
   Эталон. доля m < 1     : 0.6548
-[plot] E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab1\results\figures\margin_after_etalon.png
+[plot] E:\githab\fall-2026\students\mironenko-ap\lab 1\results\figures\margin_after_etalon.png
 ШАГ 6: Сводная таблица (12 своих + 2 эталона)
 
 optimizer  init         ordering  L2     val_loss   test_acc    roc_auc       f1   ||w||
@@ -205,14 +205,14 @@ SGD-sq     zeros        -         on       0.1327     0.9881     0.9854   0.9836
   Best. min / max      : -0.8827 / 2.2174
   Best. доля m < 0     : 0.0119
   Best. доля m < 1     : 0.6905
-[plot] E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab1\results\figures\margin_after_fit.png
+[plot] E:\githab\fall-2026\students\mironenko-ap\lab 1\results\figures\margin_after_fit.png
 ШАГ 7: Графики
-[plot] E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab1\results\figures\step3_ema_vs_loss.png
-[plot] E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab1\results\figures\step6_loss_curves.png
-[plot] E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab1\results\figures\confusion.png
-[plot] E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab1\results\figures\boundary_best.png
-[plot] E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab1\results\figures\axis_optimizer.png
-[plot] E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab1\results\figures\axis_init.png
-[plot] E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab1\results\figures\axis_ordering.png
-[plot] E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab1\results\figures\axis_L2.png
+[plot] E:\githab\fall-2026\students\mironenko-ap\lab 1\results\figures\step3_ema_vs_loss.png
+[plot] E:\githab\fall-2026\students\mironenko-ap\lab 1\results\figures\step6_loss_curves.png
+[plot] E:\githab\fall-2026\students\mironenko-ap\lab 1\results\figures\confusion.png
+[plot] E:\githab\fall-2026\students\mironenko-ap\lab 1\results\figures\boundary_best.png
+[plot] E:\githab\fall-2026\students\mironenko-ap\lab 1\results\figures\axis_optimizer.png
+[plot] E:\githab\fall-2026\students\mironenko-ap\lab 1\results\figures\axis_init.png
+[plot] E:\githab\fall-2026\students\mironenko-ap\lab 1\results\figures\axis_ordering.png
+[plot] E:\githab\fall-2026\students\mironenko-ap\lab 1\results\figures\axis_L2.png
 ШАГ 8: Сохранение отчёта
