@@ -49,12 +49,13 @@ def main():
     (best_k, best_kernel), best_loo = min(res, key=lambda x: x[1])
     my_best_k, my_best_kernel, my_best_loo = best_k, best_kernel, best_loo
     print(
-        f"Found best params: k: {best_k}, kernel: {best_kernel}. LOO = {round(best_loo, 2)}"
+        f"Full model (train LOO): k={best_k}, kernel={best_kernel}, "
+        f"LOO={best_loo:.4f}"
     )
     model = AdaptiveParzenKNN(best_k, best_kernel)
     model.train(X_train, y_train)
     acc_full = model.acc(X_test, y_test)
-    print("Test acc:", acc_full)
+    print("Full model test acc:", acc_full)
     fig = draw_loo_res(res, {best_kernel})
     # fig.suptitle('Loss/k plot')
     fig.savefig("./images/choose_k")
@@ -73,13 +74,14 @@ def main():
     full_res += sk_res
     (sk_best_k, sk_best_kernel), sk_best_loo = min(sk_res, key=lambda x: x[1])
     print(
-        f"skit-learn best params: k: {sk_best_k}, kernel: {sk_best_kernel}. LOO = {round(sk_best_loo, 2)}"
+        f"sklearn model (train LOO): k={sk_best_k}, weights={sk_best_kernel}, "
+        f"LOO={sk_best_loo:.4f}"
     )
 
     model = SklearnKNN(sk_best_k, sk_best_kernel)
     model.train(X_train, y_train)
     acc_sk = model.acc(X_test, y_test)
-    print("Test acc:", acc_sk)
+    print("sklearn test acc:", acc_sk)
     fig = draw_loo_res(full_res, {sk_best_kernel} | set(weights_values))
     # fig.suptitle('Loss/k plot')
     fig.savefig("./images/compare_sklearn")
@@ -99,27 +101,34 @@ def main():
     # fig = draw_loo_res(res_ref, {best_kernel_ref})
 
     (best_k_ref, best_kernel_ref), best_loo_ref = min(res_ref, key=lambda x: x[1])
-    print(f"{best_k_ref=} {best_kernel_ref=}")
+    print(
+        f"Ref model (train LOO, mask=ref_mask): k={best_k_ref}, "
+        f"kernel={best_kernel_ref}, LOO={best_loo_ref:.4f}"
+    )
 
     model = AdaptiveParzenKNN(best_k_ref, best_kernel_ref)
     model.train(X_ref, y_ref)
     acc_ref = model.acc(X_test, y_test)
-    print("Test acc:", acc_ref)
+    print("Ref model test acc:", acc_ref)
 
-    print("Train (full model):")
-    print("   -size:", X_train.shape[0])
-    print("   -loo:", round(my_best_loo, 4))
-    print("   -test acc:", round(acc_full, 4))
-
-    print("Reference dataset:")
+    print("Parameter search (train only):")
     print(
-        "   -size:",
-        ref_mask.sum(),
-        f"({round(ref_mask.mean() * 100, 1)}% of train)",
+        f"  full:    k={int(my_best_k)}, kernel={my_best_kernel}, "
+        f"LOO={my_best_loo:.4f}"
     )
-    print("   -loo:", round(best_loo_ref, 4))
-    print("   -test acc:", round(acc_ref, 4))
-    print("Test size:", X_test.shape[0])
+    print(
+        f"  ref:     k={int(best_k_ref)}, kernel={best_kernel_ref}, "
+        f"LOO={best_loo_ref:.4f} (n_ref={ref_mask.sum()})"
+    )
+    print(
+        f"  sklearn: k={int(sk_best_k)}, weights={sk_best_kernel}, "
+        f"LOO={sk_best_loo:.4f}"
+    )
+
+    print(f"Common test (untouched, n={X_test.shape[0]}):")
+    print(f"  full:    acc={acc_full:.4f}")
+    print(f"  ref:     acc={acc_ref:.4f}")
+    print(f"  sklearn: acc={acc_sk:.4f}")
 
     fig = draw_dataset(X_train, 1 - y_train, ref_mask)
     plt.savefig("./images/ref_dataset_plot.png", dpi=300, bbox_inches="tight")
