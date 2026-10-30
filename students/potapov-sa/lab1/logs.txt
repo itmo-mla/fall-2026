@@ -1,0 +1,23 @@
+RANDOM_STATE=14194
+
+N = 100
+100/100
+
+Best metrics (train):
+               Accuracy  Precision    Recall
+ref            0.972414   0.987500  0.963415
+multistart     0.889655   0.929577  0.857143
+shuffling      0.889655   0.855556  0.962500
+corr           0.868966   0.835165  0.950000
+unsure_margin  0.848276   0.823529  0.909091
+
+Best custom model is: multistart
+multistart metrics:
+       Accuracy  Precision    Recall
+train  0.889655   0.929577  0.857143
+test   0.693548   0.727273  0.705882
+
+ref metrics:
+       Accuracy  Precision    Recall
+train  0.972414     0.9875  0.963415
+test   0.725806     0.6875  0.758621
