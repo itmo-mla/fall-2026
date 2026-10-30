@@ -5,10 +5,8 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .DS_Store
-.venv
-venv
+.vscode/
+.idea/
 data
 *.ipynb
-.vscode/
-.idea
 *.csv
