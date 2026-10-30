@@ -1,0 +1,72 @@
+import numpy as np
+from lin_clf import  LinearClassifier
+from  dataset import  *
+from  metrics import *
+from  sklearn.svm import LinearSVC
+
+from plots import visualise_marg, visualise_corr
+
+if __name__ ==  "__main__":
+    tao = 0.8
+    start_type = ["correlation","random","multi"]
+    f1_scores = []
+    type = []
+    acc = []
+
+
+    data = load_data()
+    data = prepare_data(data)
+    visualise_corr(data)
+    X = data.drop(columns=TARGET).to_numpy(dtype=float)
+    y = data[TARGET].to_numpy(dtype=float).ravel()
+
+    rng = np.random.default_rng(43)
+    idx = rng.permutation(len(X))
+    split = int(0.8 * len(X))
+    tr, te = idx[:split], idx[split:]
+
+
+
+    X_tr, X_te = X[tr], X[te]
+    y_tr, y_te = y[tr], y[te]
+    for mode in ["train", "random", "corr"]:
+        visualise_marg(X_te,y_te, mode)
+    model = LinearClassifier()
+
+    for start in start_type:
+        print(f"{start}")
+        if start == "multi":
+            best_score = -np.inf
+            best_w = None
+            for i in range(10):
+                model.fit(X_tr, y_tr, n_iter=1000, batch_size=264, momentum=0.8,
+                          verbose=300, sampling="margin", tao=tao)
+                score = f1_score(y_te, model.predict(X_te))
+                if score > best_score:
+                    best_score = score
+                    best_w = model.weights.copy()
+
+            model.weights = best_w
+            pred = model.predict(X_te)
+            f1_scores.append(f1_score(y_te, pred))
+            acc.append(accuracy(y_te, pred))
+            type.append("multi_start")
+        else:
+            model.fit(X_tr, y[tr], n_iter=1000, batch_size=264, momentum=0.8, verbose=300, sampling= "margin", weight_init=start, tao=tao)
+            pred = model.predict(X_te)
+
+            f1 = f1_score(y_te, pred)
+            f1_scores.append(f1)
+            type.append(f"{start}")
+            acc.append(accuracy(y_te, pred))
+
+    reference_model = LinearSVC()
+    reference_model.fit(X_tr, y_tr)
+    pred = reference_model.predict(X_te)
+    f1_scores.append(f1_score(y_te, pred))
+    acc.append(accuracy(y_te, pred))
+    start_type.append("reference_model")
+    print(f1_scores, acc,start_type)
+
+
+
