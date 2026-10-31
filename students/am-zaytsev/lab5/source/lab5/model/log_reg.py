@@ -40,7 +40,7 @@ class LogReg:
         x = add_ones(x)
         if x_test is not None:
             x_test = add_ones(x_test)
-        preprocess_target(y)
+        y = preprocess_target(y)
         check_shapes(x, y)
         loss_list = []
         self._w = np.linalg.inv(x.T @ x) @ x.T @ y
