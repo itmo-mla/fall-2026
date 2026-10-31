@@ -1,0 +1,140 @@
+=== effective_dim ===
+
+[data.py] читаю локальный файл: ai4i2020.csv (offline)
+(10000, 14)
+target
+0    9661
+1     339
+Name: count, dtype: int64
+Доля отказов: 0.0339
+
+Признаки: ['air_temp', 'process_temp', 'rot_speed', 'tool_wear', 'type_L', 'type_M']
+Корреляционная матрица (train):
+ [[ 1.     0.878  0.024 -0.003  0.004  0.007]
+ [ 0.878  1.     0.024 -0.008  0.007  0.001]
+ [ 0.024  0.024  1.    -0.007 -0.006  0.003]
+ [-0.003 -0.008 -0.007  1.    -0.     0.003]
+ [ 0.004  0.007 -0.006 -0.     1.    -0.803]
+ [ 0.007  0.001  0.003  0.003 -0.803  1.   ]]
+lambda_j (F^T F): [14093.82 13520.74  7543.02  7446.5   1479.42   916.51]
+lambda_j / l (дисперсии ГК): [1.8792 1.8028 1.0057 0.9929 0.1973 0.1222]
+mu(F^T F) = lambda_max/lambda_min = 15.38
+
+m : E_m
+0 : 1.0000
+1 : 0.6868
+2 : 0.3863
+3 : 0.2187
+4 : 0.0532
+5 : 0.0204
+6 : 0.0000
+eps=0.2   -> m = 4
+eps=0.1   -> m = 4
+eps=0.05  -> m = 5
+eps=0.01  -> m = 6
+E_{m-1}/E_m: {1: np.float64(1.46), 2: np.float64(1.78), 3: np.float64(1.77), 4: np.float64(4.11), 5: np.float64(2.61)}
+Критерий крутого склона: m = 4
+
+=== compare_sklearn ===
+[data.py] читаю локальный файл: ai4i2020.csv (offline)
+(10000, 14)
+target
+0    9661
+1     339
+Name: count, dtype: int64
+Доля отказов: 0.0339
+
+max |own - sklearn| (допуск 1e-9):
+
+m = 6
+  components                 0.000e+00
+  singular_values            0.000e+00
+  explained_variance         0.000e+00
+  explained_variance_ratio   5.551e-17
+  transform_train            0.000e+00
+  transform_test             0.000e+00
+  inverse_transform          0.000e+00
+  recon_err_vs_theorem       1.956e-26
+
+m = 3
+  components                 0.000e+00
+  singular_values            0.000e+00
+  explained_variance         0.000e+00
+  explained_variance_ratio   5.551e-17
+  transform_train            0.000e+00
+  transform_test             0.000e+00
+  inverse_transform          0.000e+00
+  recon_err_vs_theorem       4.366e-11
+
+m = 2
+  components                 0.000e+00
+  singular_values            0.000e+00
+  explained_variance         0.000e+00
+  explained_variance_ratio   5.551e-17
+  transform_train            0.000e+00
+  transform_test             0.000e+00
+  inverse_transform          0.000e+00
+  recon_err_vs_theorem       5.821e-11
+
+ИТОГ: реализации эквивалентны
+
+=== regression ===
+[data.py] читаю локальный файл: ai4i2020.csv (offline)
+(10000, 14)
+target
+0    9661
+1     339
+Name: count, dtype: int64
+Доля отказов: 0.0339
+
+Выбор по контрольной части: tau* = 0.01, m* = 6
+RMSE_val(m): [10.2182 10.2182  8.2417  5.0676  5.0667  5.0643]
+
+Тест (RMSE, R^2):
+  МНК (SVD)                    RMSE=4.7915  R2=0.7625
+  Ridge (SVD), tau=0.01        RMSE=4.7915  R2=0.7625
+  PCR (SVD), m=6               RMSE=4.7915  R2=0.7625
+
+max |предсказание SVD - sklearn| на тесте:
+  МНК (SVD)                    3.197e-14
+  Ridge (SVD), tau=0.01        6.253e-13
+  PCR (SVD), m=6               4.690e-13
+
+mu(F^T F) = 15.38
+||alpha_ols||^2 = 76.9810,  ||alpha_ridge||^2 = 76.9808  (слайд 14: ridge меньше)
+эффективная размерность ridge: sum lambda/(lambda+tau) = 6.000 < n = 6
+
+Веса (alpha):
+  признак              МНК     Ridge       PCR
+  air_temp          0.2532    0.2532    0.2532
+  process_temp     -0.1705   -0.1705   -0.1705
+  rot_speed        -8.7670   -8.7670   -8.7670
+  tool_wear        -0.0469   -0.0469   -0.0469
+  type_L            0.1300    0.1300    0.1300
+  type_M            0.0893    0.0893    0.0893
+
+Ридж при разных tau (train-SVD, метрики на тесте):
+       tau   ||alpha||^2   sum l/(l+tau)   RMSE_test
+      0.01       76.9808           6.000      4.7915
+       100       74.9502           5.798      4.7984
+      1000       59.8631           4.704      4.9413
+      5000       27.6612           3.051      5.9834
+     20000        5.7146           1.475      7.9284
+
+PCR при разных m (метрики на тесте):
+  m=1  RMSE_test=9.8289  R2=0.0005
+  m=2  RMSE_test=9.8328  R2=-0.0003
+  m=3  RMSE_test=8.1873  R2=0.3065
+  m=4  RMSE_test=4.7887  R2=0.7627
+  m=5  RMSE_test=4.7891  R2=0.7627
+  m=6  RMSE_test=4.7915  R2=0.7625
+
+Нагрузки компонент (столбцы U, знак нормирован):
+  признак            ГК1     ГК2     ГК3     ГК4     ГК5     ГК6
+  air_temp        -0.706   0.015  -0.025   0.014   0.012   0.707
+  process_temp    -0.706   0.011  -0.021   0.018  -0.020  -0.707
+  rot_speed       -0.038   0.009   0.670  -0.741   0.003  -0.001
+  tool_wear        0.009   0.002  -0.742  -0.671  -0.002  -0.004
+  type_L          -0.017  -0.707  -0.000  -0.005   0.707  -0.015
+  type_M           0.009   0.707  -0.005   0.006   0.707  -0.018
+  корреляция scores ГК_j с целью (train): [ 0.038 -0.014 -0.585  0.65   0.006  0.011]
