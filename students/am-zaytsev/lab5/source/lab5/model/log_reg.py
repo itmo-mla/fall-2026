@@ -19,6 +19,11 @@ def preprocess_target(target):
     return target
 
 
+def add_ones(x):
+    ones = np.ones((x.shape[0], 1))
+    return np.hstack((x, ones))
+
+
 class LogReg:
     def __init__(self, h=1, tol=0.01, max_iteration=1_000):
         self._w = None
@@ -32,6 +37,9 @@ class LogReg:
         return np.sum(np.log(1 + np.exp(-margin)))
 
     def train(self, x, y, x_test=None, y_test=None):
+        x = add_ones(x)
+        if x_test is not None:
+            x_test = add_ones(x_test)
         preprocess_target(y)
         check_shapes(x, y)
         loss_list = []
@@ -63,4 +71,5 @@ class LogReg:
         return loss_list
 
     def eval(self, x):
+        x = add_ones(x)
         return ((x @ self._w) > 0) * 2 - 1

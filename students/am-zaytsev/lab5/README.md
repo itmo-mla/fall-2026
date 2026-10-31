@@ -86,6 +86,7 @@ model_sk = LogisticRegression(
     C=np.inf,  # no L2 regularization
     tol=1e-4,  # not same as in my implementation
     max_iter=10_000,
+    fit_intercept=True,
 )
 ```
 

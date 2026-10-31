@@ -31,6 +31,7 @@ def main():
         C=np.inf,  # no L2 regularization
         tol=1e-4,
         max_iter=10_000,
+        fit_intercept=True,
     )
     model_sk.fit(X_train, y_train[:, 0])
 
