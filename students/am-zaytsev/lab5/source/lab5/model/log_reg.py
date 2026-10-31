@@ -53,7 +53,7 @@ class LogReg:
             margin = y * x @ self._w
             sig = sigmoid(margin)  # [..., np.newaxis]
             if prev_sig is not None:
-                d_sig = np.mean(np.abs(prev_sig - sig) / np.abs(sig))
+                d_sig = np.mean(np.abs(prev_sig - sig) / np.abs(sig + 1e-8))
                 if d_sig < self.tol:
                     break
             prev_sig = sig
