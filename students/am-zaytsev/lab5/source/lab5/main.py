@@ -37,14 +37,14 @@ def main():
 
     acc_test_sk = model_sk.score(X_test, y_test[:, 0])
     acc_train_sk = model_sk.score(X_train, y_train[:, 0])
-    cm_sk = confusion_matrix(model_sk.predict(X_test), y_test)
+    cm_sk = confusion_matrix(y_test, model_sk.predict(X_test))
     print_result("sklearn LogisticRegression", acc_test_sk, acc_train_sk, cm_sk)
 
     model_my = LogReg(max_iteration=10_000, h=1, tol=1e-4)
     loss_list = model_my.train(X_train, y_train, X_test, y_test)
     acc_test_my = (model_my.eval(X_test) == y_test).mean()
     acc_train_my = (model_my.eval(X_train) == y_train).mean()
-    cm_my = confusion_matrix(model_my.eval(X_test), y_test)
+    cm_my = confusion_matrix(y_test, model_my.eval(X_test))
     print_result(
         "custom LogReg (Newton-Raphson / IRLS)", acc_test_my, acc_train_my, cm_my
     )

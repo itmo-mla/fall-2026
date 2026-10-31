@@ -117,15 +117,15 @@ sklearn LogisticRegression
   Train: accuracy: 1.0000
   Test: accuracy: 0.8947
   Test: confusion matrix:
-  41 10
-   2 61
+  41  2
+  10 61
 
 custom LogReg (Newton-Raphson / IRLS)
   Train: accuracy: 1.0000
   Test: accuracy: 0.8947
   Test: confusion matrix:
-  41 10
-   2 61
+  41  2
+  10 61
 
 Models prediction match: 100.00%
 ```
