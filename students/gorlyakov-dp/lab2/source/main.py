@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from algorithms import predict_knn
+from algorithms import predict_parzen
 from metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
@@ -22,13 +22,13 @@ X_std = np.std(X_train, axis=0)
 X_train = (X_train - X_mean) / X_std
 X_test = (X_test - X_mean) / X_std
 
+k = 3
+y_pred = predict_parzen(X_train, y_train, X_test, k)
 
 results = []
-k = 3
-y_pred = predict_knn(X_train, y_train, X_test, k)
 results.append(
     {
-        "model": f"kNN, k={k}",
+        "model": f"kNN + Parzen, k={k}",
         "accuracy": accuracy_score(y_test, y_pred),
         "precision": precision_score(y_test, y_pred),
         "recall": recall_score(y_test, y_pred),
