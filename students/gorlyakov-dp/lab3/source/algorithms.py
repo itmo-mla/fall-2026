@@ -97,5 +97,12 @@ def select_parameters(X, y, kernel, C_values, gamma_values=(None,), n_splits=5):
                 scores.append(np.mean(predictions == y_valid))
             results.append({"C": C, "gamma": gamma, "cv_accuracy": np.mean(scores)})
 
-    best = max(results, key=lambda row: round(row["cv_accuracy"], 12))
+    best = max(
+        results,
+        key=lambda row: (
+            round(row["cv_accuracy"], 12),
+            -row["C"],
+            -row["gamma"] if row["gamma"] is not None else 0,
+        ),
+    )
     return best, results
