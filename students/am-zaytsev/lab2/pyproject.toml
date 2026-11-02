@@ -1,0 +1,35 @@
+[project]
+name = "metric_model"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Zaytsev Artem", email = "zajtsev.artjom@samlit.net" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "matplotlib>=3.10.9",
+    "nbformat>=5.11.1",
+    "pandas>=2.3.3",
+    "scikit-learn>=1.7.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.30,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = "source"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.3.0",
+    "kagglehub>=1.0.2",
+    "plotly>=7.1.0",
+    "py-spy>=0.4.2",
+    "pytest>=9.1.1",
+]
+
+[project.scripts]
+main = "metric_model.main:main"
+draw_pm = "metric_model.train.ccv:draw_pm"
