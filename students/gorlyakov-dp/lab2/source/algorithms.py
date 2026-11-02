@@ -78,3 +78,47 @@ def loo(X, y, ks):
         risks.append(np.mean(predictions != y))
 
     return np.array(risks)
+
+
+def select_prototypes(X, y):
+    if len(X) < 2:
+        raise ValueError("At least two objects are required for prototype selection")
+
+    distances = np.array([calculate_distances(X, x) for x in X])
+    np.fill_diagonal(distances, np.inf)
+
+    prototypes = np.arange(len(X))
+    classes = np.unique(y)
+    history = []
+
+    while True:
+        current = distances[:, prototypes].copy()
+        nearest = np.argmin(current, axis=1)
+        wrong = y[prototypes[nearest]] != y
+        errors = np.sum(wrong)
+        history.append((len(prototypes), errors / len(X)))
+
+        if len(prototypes) <= max(2, len(classes)):
+            break
+
+        current[np.arange(len(X)), nearest] = np.inf
+        second = np.argmin(current, axis=1)
+        wrong_second = y[prototypes[second]] != y
+        candidates = errors + np.bincount(
+            nearest,
+            weights=wrong_second.astype(int) - wrong.astype(int),
+            minlength=len(prototypes),
+        )
+
+        for cls in classes:
+            positions = np.flatnonzero(y[prototypes] == cls)
+            if len(positions) == 1:
+                candidates[positions[0]] = np.inf
+
+        best = np.argmin(candidates)
+        if candidates[best] > errors:
+            break
+
+        prototypes = np.delete(prototypes, best)
+
+    return prototypes, np.array(history)

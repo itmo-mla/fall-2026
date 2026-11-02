@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from algorithms import loo, predict_knn, predict_parzen
+from algorithms import loo, predict_knn, predict_parzen, select_prototypes
 from metrics import accuracy_score, f1_score, precision_score, recall_score
 from plots import plot_data_projection, plot_loo_risk
 from sklearn.datasets import load_breast_cancer
@@ -61,3 +61,20 @@ for name, y_pred in predictions.items():
     )
 
 print(pd.DataFrame(results).to_string(index=False))
+
+prototypes, selection_history = select_prototypes(X_train, y_train)
+print(f"Эталонов: {len(prototypes)} из {len(X_train)}")
+print(
+    f"LOO для 1NN при отборе: {selection_history[0, 1]:.4f}"
+    f" -> {selection_history[-1, 1]:.4f}"
+)
+print(
+    pd.DataFrame(
+        {
+            "class": np.unique(y_train),
+            "prototypes": [
+                np.sum(y_train[prototypes] == cls) for cls in np.unique(y_train)
+            ],
+        }
+    ).to_string(index=False)
+)
