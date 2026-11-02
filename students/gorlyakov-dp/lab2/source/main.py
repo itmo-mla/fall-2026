@@ -20,6 +20,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=30, stratify=y
 )
 
+X_train_raw = X_train
 X_mean = np.mean(X_train, axis=0)
 X_std = np.std(X_train, axis=0)
 
@@ -31,7 +32,7 @@ figures.mkdir(exist_ok=True)
 plot_data_projection(X_train, y_train, figures / "data_projection.png")
 
 ks = np.arange(1, len(X_train) - 1)
-risks = loo(X_train, y_train, ks)
+risks = loo(X_train_raw, y_train, ks)
 best_index = np.argmin(risks)
 k = ks[best_index]
 

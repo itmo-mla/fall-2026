@@ -67,7 +67,13 @@ def loo(X, y, ks):
     if ks.size == 0 or np.any((ks < 1) | (ks > len(X) - 2)):
         raise ValueError("k must be between 1 and the number of objects minus 2")
 
-    distances = np.array([calculate_distances(X, x) for x in X])
+    distances = []
+    for i, x in enumerate(X):
+        train = np.delete(X, i, axis=0)
+        std = np.std(train, axis=0)
+        std[std == 0] = 1
+        distances.append(np.linalg.norm((X - x) / std, axis=1))
+    distances = np.array(distances)
     np.fill_diagonal(distances, np.inf)
 
     risks = []
