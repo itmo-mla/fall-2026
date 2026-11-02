@@ -48,20 +48,6 @@ predictions = {
     f"sklearn KNN, k={k}": reference.predict(X_test),
 }
 
-results = []
-for name, y_pred in predictions.items():
-    results.append(
-        {
-            "model": name,
-            "accuracy": accuracy_score(y_test, y_pred),
-            "precision": precision_score(y_test, y_pred),
-            "recall": recall_score(y_test, y_pred),
-            "f1": f1_score(y_test, y_pred),
-        }
-    )
-
-print(pd.DataFrame(results).to_string(index=False))
-
 prototypes, selection_history = select_prototypes(X_train, y_train)
 plot_data_projection(
     X_train, y_train, figures / "prototypes.png", prototypes=prototypes,
@@ -82,3 +68,40 @@ print(
         }
     ).to_string(index=False)
 )
+
+reference_prototypes = KNeighborsClassifier(
+    n_neighbors=k, weights="uniform", metric="euclidean",
+)
+reference_prototypes.fit(X_train[prototypes], y_train[prototypes])
+
+predictions.update(
+    {
+        f"kNN, prototypes, k={k}": predict_knn(
+            X_train[prototypes], y_train[prototypes], X_test, k,
+        ),
+        f"kNN + Parzen, prototypes, k={k}": predict_parzen(
+            X_train[prototypes], y_train[prototypes], X_test, k,
+        ),
+        f"sklearn KNN, prototypes, k={k}": reference_prototypes.predict(X_test),
+    }
+)
+
+results = []
+for name, y_pred in predictions.items():
+    results.append(
+        {
+            "model": name,
+            "accuracy": accuracy_score(y_test, y_pred),
+            "precision": precision_score(y_test, y_pred),
+            "recall": recall_score(y_test, y_pred),
+            "f1": f1_score(y_test, y_pred),
+        }
+    )
+
+print(pd.DataFrame(results).to_string(index=False))
+
+differences = np.sum(
+    predictions[f"kNN, prototypes, k={k}"]
+    != predictions[f"sklearn KNN, prototypes, k={k}"]
+)
+print(f"Расхождений KNN на эталонах со sklearn: {differences} из {len(y_test)}")
