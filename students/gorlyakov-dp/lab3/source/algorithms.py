@@ -45,3 +45,13 @@ def solve_dual(X, y, C=1.0, kernel=linear_kernel):
         raise RuntimeError(f"Dual optimization failed: {result.message}")
 
     return result.x, result.fun
+
+
+def build_linear_classifier(X, y, lambdas, C, eps=1e-6):
+    w = np.dot(lambdas * y, X)
+    boundary = (lambdas > eps) & (lambdas < C - eps)
+    if not np.any(boundary):
+        raise ValueError("No boundary support vectors with 0 < lambda < C")
+
+    w0 = np.mean(np.dot(X[boundary], w) - y[boundary])
+    return w, w0

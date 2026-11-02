@@ -1,5 +1,11 @@
 import numpy as np
-from algorithms import linear_kernel, polynomial_kernel, rbf_kernel, solve_dual
+from algorithms import (
+    build_linear_classifier,
+    linear_kernel,
+    polynomial_kernel,
+    rbf_kernel,
+    solve_dual,
+)
 from sklearn.datasets import make_moons
 from sklearn.model_selection import train_test_split
 
@@ -19,15 +25,26 @@ X_train = (X_train - X_mean) / X_std
 X_test = (X_test - X_mean) / X_std
 
 C = 1.0
-kernels = {
-    "linear": linear_kernel,
-    "polynomial": polynomial_kernel,
-    "rbf": rbf_kernel,
-}
 
-for name, kernel in kernels.items():
-    lambdas, dual_value = solve_dual(X_train, y_train, C, kernel)
 
+def print_dual_result(name, C, lambdas, dual_value, y):
     print(f"Ядро: {name}, C = {C}, значение целевой функции: {dual_value:.6f}")
     print(f"Диапазон lambda: [{lambdas.min():.6f}, {lambdas.max():.6f}]")
-    print(f"Остаток ограничения sum(lambda * y) = 0: {abs(np.dot(lambdas, y_train)):.2e}")
+    print(f"Остаток ограничения sum(lambda * y) = 0: {abs(np.dot(lambdas, y)):.2e}")
+
+
+lambdas_linear, dual_linear = solve_dual(X_train, y_train, C, linear_kernel)
+print_dual_result("linear", C, lambdas_linear, dual_linear, y_train)
+w, w0 = build_linear_classifier(X_train, y_train, lambdas_linear, C)
+print(f"w = {w}, w0 = {w0:.6f}")
+
+lambdas_poly, dual_poly = solve_dual(
+    X_train,
+    y_train,
+    C,
+    polynomial_kernel,
+)
+print_dual_result("polynomial", C, lambdas_poly, dual_poly, y_train)
+
+lambdas_rbf, dual_rbf = solve_dual(X_train, y_train, C, rbf_kernel)
+print_dual_result("rbf", C, lambdas_rbf, dual_rbf, y_train)
