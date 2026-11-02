@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from algorithms import loo, predict_knn, predict_parzen, select_prototypes
 from metrics import accuracy_score, f1_score, precision_score, recall_score
-from plots import plot_data_projection, plot_loo_risk
+from plots import plot_data_projection, plot_loo_risk, plot_selection_history
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
@@ -63,6 +63,10 @@ for name, y_pred in predictions.items():
 print(pd.DataFrame(results).to_string(index=False))
 
 prototypes, selection_history = select_prototypes(X_train, y_train)
+plot_data_projection(
+    X_train, y_train, figures / "prototypes.png", prototypes=prototypes,
+)
+plot_selection_history(selection_history, figures / "prototype_selection.png")
 print(f"Эталонов: {len(prototypes)} из {len(X_train)}")
 print(
     f"LOO для 1NN при отборе: {selection_history[0, 1]:.4f}"
