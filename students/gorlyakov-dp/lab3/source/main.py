@@ -12,9 +12,11 @@ from algorithms import (
     select_parameters,
     solve_dual,
 )
+from metrics import accuracy_score, f1_score, precision_score, recall_score
 from plots import plot_solutions
 from sklearn.datasets import make_moons
 from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
 
 np.random.seed(30)
 
@@ -105,3 +107,49 @@ models = [
 figures = Path(__file__).resolve().parent.parent / "figures"
 figures.mkdir(exist_ok=True)
 plot_solutions(X_train, y_train, models, figures / "svm_solutions.png")
+
+reference_linear = SVC(C=C_linear, kernel="linear", tol=1e-8)
+reference_linear.fit(X_train, y_train)
+
+reference_poly = SVC(C=C_poly, kernel="poly", degree=3, gamma=1, coef0=1, tol=1e-8)
+reference_poly.fit(X_train, y_train)
+
+reference_rbf = SVC(C=C_rbf, kernel="rbf", gamma=best_rbf["gamma"], tol=1e-8)
+reference_rbf.fit(X_train, y_train)
+
+linear_scores = np.dot(X_test, w) - w0
+poly_scores = np.dot(polynomial_kernel(X_test, X_train), lambdas_poly * y_train) - w0_poly
+rbf_scores = np.dot(kernel_rbf(X_test, X_train), lambdas_rbf * y_train) - w0_rbf
+
+results = []
+comparisons = []
+for name, scores, lambdas, reference in [
+    ("linear", linear_scores, lambdas_linear, reference_linear),
+    ("polynomial", poly_scores, lambdas_poly, reference_poly),
+    ("rbf", rbf_scores, lambdas_rbf, reference_rbf),
+]:
+    predictions = np.where(scores >= 0, 1, -1)
+    reference_predictions = reference.predict(X_test)
+    for implementation, y_pred in [("own", predictions), ("sklearn SVC", reference_predictions)]:
+        results.append(
+            {
+                "kernel": name,
+                "model": implementation,
+                "accuracy": accuracy_score(y_test, y_pred),
+                "precision": precision_score(y_test, y_pred),
+                "recall": recall_score(y_test, y_pred),
+                "f1": f1_score(y_test, y_pred),
+            }
+        )
+    comparisons.append(
+        {
+            "kernel": name,
+            "prediction_differences": np.sum(predictions != reference_predictions),
+            "max_score_difference": np.max(np.abs(scores - reference.decision_function(X_test))),
+            "support_own": np.sum(lambdas > 1e-6),
+            "support_sklearn": reference.n_support_.sum(),
+        }
+    )
+
+print(pd.DataFrame(results).to_string(index=False))
+print(pd.DataFrame(comparisons).to_string(index=False))
