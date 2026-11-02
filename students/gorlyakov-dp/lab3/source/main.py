@@ -1,5 +1,5 @@
 import numpy as np
-from algorithms import solve_dual
+from algorithms import linear_kernel, polynomial_kernel, rbf_kernel, solve_dual
 from sklearn.datasets import make_moons
 from sklearn.model_selection import train_test_split
 
@@ -19,8 +19,15 @@ X_train = (X_train - X_mean) / X_std
 X_test = (X_test - X_mean) / X_std
 
 C = 1.0
-lambdas, dual_value = solve_dual(X_train, y_train, C)
+kernels = {
+    "linear": linear_kernel,
+    "polynomial": polynomial_kernel,
+    "rbf": rbf_kernel,
+}
 
-print(f"C = {C}, значение целевой функции: {dual_value:.6f}")
-print(f"Диапазон lambda: [{lambdas.min():.6f}, {lambdas.max():.6f}]")
-print(f"Остаток ограничения sum(lambda * y) = 0: {abs(np.dot(lambdas, y_train)):.2e}")
+for name, kernel in kernels.items():
+    lambdas, dual_value = solve_dual(X_train, y_train, C, kernel)
+
+    print(f"Ядро: {name}, C = {C}, значение целевой функции: {dual_value:.6f}")
+    print(f"Диапазон lambda: [{lambdas.min():.6f}, {lambdas.max():.6f}]")
+    print(f"Остаток ограничения sum(lambda * y) = 0: {abs(np.dot(lambdas, y_train)):.2e}")

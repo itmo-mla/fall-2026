@@ -2,11 +2,24 @@ import numpy as np
 from scipy.optimize import minimize
 
 
-def solve_dual(X, y, C=1.0):
+def linear_kernel(X, Z):
+    return np.dot(X, Z.T)
+
+
+def polynomial_kernel(X, Z, degree=3):
+    return (np.dot(X, Z.T) + 1) ** degree
+
+
+def rbf_kernel(X, Z, gamma=1.0):
+    squared_distances = np.sum((X[:, None, :] - Z[None, :, :]) ** 2, axis=2)
+    return np.exp(-gamma * squared_distances)
+
+
+def solve_dual(X, y, C=1.0, kernel=linear_kernel):
     if C <= 0:
         raise ValueError("C must be positive")
 
-    Q = np.outer(y, y) * np.dot(X, X.T)
+    Q = np.outer(y, y) * kernel(X, X)
 
     def objective(lambdas):
         return 0.5 * np.dot(lambdas, np.dot(Q, lambdas)) - np.sum(lambdas)
