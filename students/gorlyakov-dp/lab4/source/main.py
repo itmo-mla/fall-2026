@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import numpy as np
-from algorithms import fit_pca
+from algorithms import fit_pca, select_pca_dimension
+from plots import plot_dimension_selection
 from sklearn.datasets import load_wine
 from sklearn.model_selection import train_test_split
 
@@ -20,7 +23,9 @@ X_train = (X_train - X_mean) / X_std
 X_test = (X_test - X_mean) / X_std
 
 pca_mean, components, singular_values = fit_pca(X_train)
-m = 2
+epsilon = 0.05
+m, errors = select_pca_dimension(singular_values, epsilon)
+
 U_m = components[:, :m]
 
 F_train = X_train - pca_mean
@@ -35,7 +40,15 @@ train_error = np.sum((X_train_reconstructed - X_train) ** 2) / np.sum(F_train**2
 test_error = np.sum((X_test_reconstructed - X_test) ** 2) / np.sum(F_test**2)
 
 print(f"Сингулярные числа: {singular_values}")
+print(f"Размерность при epsilon={epsilon}: {m}")
 print(f"Размерность train: {X_train.shape} -> {G_train.shape}")
 print(f"Размерность test: {X_test.shape} -> {G_test.shape}")
 print(f"Относительная ошибка восстановления train: {train_error:.6f}")
 print(f"Относительная ошибка восстановления test: {test_error:.6f}")
+
+figures = Path(__file__).resolve().parent.parent / "figures"
+figures.mkdir(exist_ok=True)
+plot_dimension_selection(
+    singular_values, errors, epsilon, m,
+    figures / "dimension_selection.png",
+)
