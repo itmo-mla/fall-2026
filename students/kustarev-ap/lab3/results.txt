@@ -1,0 +1,30 @@
+классы: поддельная 610, подлинная 762
+train=1097, test=275, train_sub=250
+лучшие гиперпараметры:
+linear: {'C': np.float64(0.046415888336127774), 'accuracy': np.float64(0.992), 'f1': np.float64(0.9925900514579759)}
+poly: {'C': 0.1, 'degree': 3, 'coef0': 1.0, 'accuracy': np.float64(1.0), 'f1': np.float64(1.0)}
+rbf: {'C': 1, 'gamma': 0.25, 'accuracy': np.float64(1.0), 'f1': np.float64(1.0)}
+KKT-проверка:
+linear {'bounds_ok': True, 'equality_gap': np.float64(4.3076653355456074e-14), 'sv_fraction': 0.38, 'success': True, 'dual_objective': -2.8431358290228075}
+poly {'bounds_ok': True, 'equality_gap': np.float64(8.997247391562269e-13), 'sv_fraction': 0.1, 'success': True, 'dual_objective': -0.8808288210196937}
+rbf {'bounds_ok': True, 'equality_gap': np.float64(1.8207657603852567e-14), 'sv_fraction': 0.2, 'success': True, 'dual_objective': -24.66229338595615}
+sanity-check прямая/двойственная: max diff 1.3322676295501878e-15 sign match % 100.0
+веса линейного классификатора:
+variance 1.166135558830302 1.166135558830302
+skewness 0.8916207470992417 0.8916207470992417
+curtosis 0.8467627035498243 0.8467627035498243
+entropy -0.09305144967053788 0.09305144967053788
+сравнение со sklearn:
+{'kernel': 'linear', 'impl': 'своя', 'accuracy': 0.9563636363636364, 'precision': 0.9862068965517241, 'recall': 0.934640522875817, 'f1': 0.959731543624161, 'n_sv': 95, 'time': 0.3089597999933176}
+{'kernel': 'linear', 'impl': 'sklearn', 'accuracy': 0.9563636363636364, 'precision': 0.9862068965517241, 'recall': 0.934640522875817, 'f1': 0.959731543624161, 'n_sv': 95, 'time': 0.0013941999932285398}
+{'kernel': 'poly', 'impl': 'своя', 'accuracy': 1.0, 'precision': 1.0, 'recall': 1.0, 'f1': 1.0, 'n_sv': 25, 'time': 0.6879484999954002}
+{'kernel': 'poly', 'impl': 'sklearn', 'accuracy': 1.0, 'precision': 1.0, 'recall': 1.0, 'f1': 1.0, 'n_sv': 25, 'time': 0.0010015000007115304}
+{'kernel': 'rbf', 'impl': 'своя', 'accuracy': 1.0, 'precision': 1.0, 'recall': 1.0, 'f1': 1.0, 'n_sv': 50, 'time': 1.127484100012225}
+{'kernel': 'rbf', 'impl': 'sklearn', 'accuracy': 1.0, 'precision': 1.0, 'recall': 1.0, 'f1': 1.0, 'n_sv': 51, 'time': 0.001037300011375919}
+sklearn poly на полном train (1097): accuracy=1.000, время=0.00с
+baseline:
+{'model': 'DummyClassifier', 'accuracy': 0.5563636363636364, 'f1': 0.7149532710280374}
+{'model': 'линейный SVM', 'accuracy': 0.9563636363636364, 'f1': 0.959731543624161}
+{'model': 'poly SVM', 'accuracy': 1.0, 'f1': 1.0}
+{'model': 'RBF SVM', 'accuracy': 1.0, 'f1': 1.0}
+графики сохранены в D:\PC projects\fall-2026\students\kustarev-ap\lab3\plots
