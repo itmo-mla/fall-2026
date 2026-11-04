@@ -1,0 +1,30 @@
+[main] отчёт: E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab3\results\report\report.txt
+[main] аргументы: {'regenerate': False, 'C': 1.0, 'gamma': 0.03, 'kernel': 'rbf', 'no_plot': False}
+train: (398, 30), test: (171, 30)  (30D)
+PCA explained variance: 0.643
+baseline (majority): 0.6257
+
+ kernel=rbf, C=1.0, gamma=0.03
+  [sklearn      ] acc=0.9708  SV= 89
+  [custom smo   ] acc=0.9708  SV= 89  KKT=8.43e-06  iters=122
+  [custom scipy ] acc=0.9708  SV= 89  KKT=2.04e-07  iters=44
+  [diff smo-ref  ] +0.0000
+  [diff scipy-ref] +0.0000
+  [diff smo-scipy] +0.0000
+
+ kernel=linear, C=1.0, gamma=0.03
+  [sklearn      ] acc=0.9825  SV= 31
+  [custom smo   ] acc=0.9825  SV= 31  KKT=1.09e-05  iters=483
+  [custom scipy ] acc=0.9825  SV= 31  KKT=2.61e-05  iters=36
+  [diff smo-ref  ] +0.0000
+  [diff scipy-ref] +0.0000
+  [diff smo-scipy] +0.0000
+  [linear] ||w_custom||=2.6085  cos(w_custom, w_sklearn)=1.000000
+
+ 2D-PCA visualisation
+[rbf]  smo=0.9415  scipy=0.9415  sklearn=0.9415
+[fig] сохранено: E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab3\results\figures\comparison_rbf.png
+[linear]  smo=0.9415  scipy=0.9415  sklearn=0.9415
+[fig] сохранено: E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab3\results\figures\comparison_linear.png
+
+[main] готово. отчёт сохранён: E:\all_workspace\python_workspace\PycharmProjects\ML_algoritm\Lab3\results\report\report.txt
