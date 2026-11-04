@@ -1,19 +1,17 @@
-.venv
-venv
 
-data
-*.ipynb
-
-__pycache__/
-.vscode/
-
-.idea
-*.csv
-
+.venv/
+venv/
 env/
 
+__pycache__/
 *.py[cod]
 .pytest_cache/
+
+.vscode/
+.idea/
+
 .DS_Store
 
-data
+data/
+*.ipynb
+*.csv
