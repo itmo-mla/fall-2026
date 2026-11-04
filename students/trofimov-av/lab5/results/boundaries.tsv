@@ -1,0 +1,4 @@
+method	test_accuracy	test_log_loss
+newton	0.85	0.27418373559294185
+irls	0.85	0.27418373559294185
+sklearn	0.85	0.2741837356076234
