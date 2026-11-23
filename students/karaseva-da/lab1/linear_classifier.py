@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import time
+import kagglehub
 from pathlib import Path
 
 import numpy as np
@@ -25,7 +26,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
 
 ROOT = Path(__file__).resolve().parent
-DATA_PATHS = [ROOT / "weatherAUS.csv", ROOT.parent / "weatherAUS.csv", Path.cwd() / "weatherAUS.csv"]
+DATA_PATHS = [
+    ROOT / "weatherAUS.csv",
+    ROOT.parent / "weatherAUS.csv",
+    Path.cwd() / "weatherAUS.csv",
+]
 OUTPUT_PATH = ROOT / "results.json"
 SEED = 42
 EPOCHS = 12
@@ -59,10 +64,13 @@ VAL_FRACTION = 0.85
 
 def find_dataset() -> Path:
     for path in DATA_PATHS:
-        if path.exists():
+        if path.is_file():
             return path
-    raise FileNotFoundError("Не найден weatherAUS.csv. Положи CSV рядом с linear_classifier.py.")
 
+    dataset_dir = Path(
+        kagglehub.dataset_download("jsphyg/weather-dataset-rattle-package")
+    )
+    return dataset_dir / "weatherAUS.csv"
 
 def clip_outliers(Z: np.ndarray) -> np.ndarray:
     return np.clip(Z, -CLIP, CLIP)
